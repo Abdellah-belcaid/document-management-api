@@ -1,13 +1,19 @@
 package africa.norsys.doc.entity;
 
 import jakarta.persistence.*;
+import lombok.*;
 
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
+@Getter
+@Setter
+@Builder
 @Entity
 @Table(name = "documents")
+@NoArgsConstructor
+@AllArgsConstructor
 public class Document {
 
     @Id
