@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.UUID;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,8 +35,9 @@ public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentRepository documentRepository;
 
+
     @Override
-    public Document addDocument(MultipartFile file, String baseUrl) throws DocumentNotAddedException {
+    public Document addDocument(MultipartFile file, String baseUrl) throws IOException {
 
         Document document = Document.builder()
                 .name(file.getOriginalFilename())
@@ -106,6 +108,16 @@ public class DocumentServiceImpl implements DocumentService {
             log.error("An error occurred while searching documents by keyword: {}", e.getMessage());
             throw new DocumentNotFoundException("Failed to search documents by keyword: " + e.getMessage());
         }
+    }
+    @Override
+    public void deleteDocumentById(UUID documentId) throws DocumentNotFoundException, IOException {
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new DocumentNotFoundException("Document not found with id: " + documentId));
+
+        String filename = documentId+ document.getMetadata().get("extension");
+        Path filePath = Paths.get(FILE_STORAGE_LOCATION).resolve(filename).normalize();
+        Files.deleteIfExists(filePath);
+        documentRepository.delete(document);
     }
 
 }

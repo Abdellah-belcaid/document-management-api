@@ -1,6 +1,7 @@
 package africa.norsys.doc.controller;
 
 import africa.norsys.doc.entity.Document;
+import africa.norsys.doc.exception.DocumentNotFoundException;
 import africa.norsys.doc.service.DocumentService;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +53,17 @@ public class DocumentController {
     ) {
         Page<Document> documentPage = documentService.getAllDocuments(page, size, sortDirection, sortBy);
         return documentPage == null || documentPage.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(documentPage);
+    }
+    @DeleteMapping("/{documentId}")
+    public ResponseEntity<Void> deleteDocument(@PathVariable UUID documentId) {
+        try {
+            documentService.deleteDocumentById(documentId);
+            return ResponseEntity.ok().build();
+        } catch (DocumentNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @GetMapping("/{id}")

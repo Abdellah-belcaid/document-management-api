@@ -17,9 +17,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 import org.springframework.mock.web.MockMultipartFile;
 
-import java.io.IOException;
+
 import java.util.*;
+import java.io.IOException;
 import java.util.stream.Collectors;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static africa.norsys.doc.util.DocumentHelperTest.BASE_URL;
 import static org.junit.jupiter.api.Assertions.*;
@@ -89,7 +93,7 @@ class DocumentServiceTest {
 
     @Test
     @DisplayName("Should return empty page when no document exist")
-    public void shouldThrowExceptionWhenNoExamsExist() {
+    public void shouldThrowExceptionWhenNoDocumentExist() {
         // Arrange
         Page<Document> emptyPage = new PageImpl<>(Collections.emptyList());
 
@@ -122,8 +126,8 @@ class DocumentServiceTest {
     }
 
     @Test
-    @DisplayName("Should return exams sorted by name ascending")
-    public void shouldReturnExamsSortedByTitleAscending() {
+    @DisplayName("Should return documents sorted by name ascending")
+    public void shouldReturnDocumentsSortedByTitleAscending() {
         // Arrange
         Pageable pageable = PageRequest.of(0, 5, Sort.Direction.ASC, "name");
 
@@ -143,8 +147,8 @@ class DocumentServiceTest {
     }
 
     @Test
-    @DisplayName("Should return exams sorted by id descending")
-    public void shouldReturnExamsSortedByIdDescending() {
+    @DisplayName("Should return documents sorted by id descending")
+    public void shouldReturnDocumentsSortedByIdDescending() {
         // Arrange
         Pageable pageable = PageRequest.of(0, 5, Sort.Direction.DESC, "id");
 
@@ -240,5 +244,31 @@ class DocumentServiceTest {
         assertThrows(DocumentNotFoundException.class, () -> documentService.searchByKeyword(keyword, date));
     }
 
+
+    @Test
+    void testDeleteDocumentById_WhenDocumentExists_DeletesDocumentSuccessfully() throws DocumentNotFoundException, IOException {
+
+        Document mockDocument = DocumentHelperTest.createMockDocument();
+        UUID documentId = mockDocument.getId();
+        when(documentRepository.findById(documentId)).thenReturn(Optional.of(mockDocument));
+
+        documentService.deleteDocumentById(documentId);
+
+        verify(documentRepository, times(1)).findById(documentId);
+        verify(documentRepository, times(1)).delete(mockDocument);
+    }
+    @Test
+    void testDeleteDocumentByIdWhenDocumentNotFound() {
+
+        UUID documentId = UUID.randomUUID();
+
+        when(documentRepository.findById(documentId)).thenReturn(Optional.empty());
+
+        assertThrows(DocumentNotFoundException.class, () -> {
+            documentService.deleteDocumentById(documentId);
+        });
+
+        verify(documentRepository, never()).delete(any());
+    }
 
 }

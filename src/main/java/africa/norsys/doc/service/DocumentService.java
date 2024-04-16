@@ -1,6 +1,7 @@
 package africa.norsys.doc.service;
 
 import africa.norsys.doc.entity.Document;
+import africa.norsys.doc.exception.DocumentNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -16,6 +17,7 @@ public interface DocumentService {
 
 
     Page<Document> getAllDocuments(Integer page, Integer pageSize, String sortBy, String sortDirection);
+    void deleteDocumentById(UUID documentId)throws DocumentNotFoundException, IOException;;
 
     Optional<Document> getDocumentById(UUID id);
 
