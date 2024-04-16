@@ -17,15 +17,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 import org.springframework.mock.web.MockMultipartFile;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+
+import java.util.*;
 import java.util.stream.Collectors;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static africa.norsys.doc.util.DocumentHelperTest.BASE_URL;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -98,7 +98,7 @@ class DocumentServiceTest {
 
         // Act
         when(documentRepository.findAll(any(Pageable.class))).thenReturn(emptyPage);
-        Throwable exception = Assertions.assertThrows(DocumentNotFoundException.class, () -> {
+        Throwable exception = assertThrows(DocumentNotFoundException.class, () -> {
             documentService.getAllDocuments(0, 5, "asc", "id");
         });
 
@@ -166,4 +166,30 @@ class DocumentServiceTest {
         Assertions.assertEquals(sortedPage, result, "Returned page should be sorted by id in descending order");
 
     }
+    @Test
+    void testDeleteDocumentById_WhenDocumentExists_DeletesDocumentSuccessfully() throws DocumentNotFoundException, IOException {
+
+        Document mockDocument = DocumentHelperTest.createMockDocument();
+        UUID documentId = mockDocument.getId();
+        when(documentRepository.findById(documentId)).thenReturn(Optional.of(mockDocument));
+
+        documentService.deleteDocumentById(documentId);
+
+        verify(documentRepository, times(1)).findById(documentId);
+        verify(documentRepository, times(1)).delete(mockDocument);
+    }
+    @Test
+    void testDeleteDocumentByIdWhenDocumentNotFound() {
+
+        UUID documentId = UUID.randomUUID();
+
+        when(documentRepository.findById(documentId)).thenReturn(Optional.empty());
+
+        assertThrows(DocumentNotFoundException.class, () -> {
+            documentService.deleteDocumentById(documentId);
+        });
+
+        verify(documentRepository, never()).delete(any());
+    }
+
 }

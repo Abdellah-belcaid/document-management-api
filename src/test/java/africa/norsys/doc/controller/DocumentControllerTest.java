@@ -2,6 +2,7 @@
 package africa.norsys.doc.controller;
 
 import africa.norsys.doc.entity.Document;
+import africa.norsys.doc.exception.DocumentNotFoundException;
 import africa.norsys.doc.service.DocumentService;
 import africa.norsys.doc.util.DocumentHelperTest;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,12 +25,13 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import static africa.norsys.doc.constant.PaginationConstants.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(DocumentController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -63,7 +65,7 @@ class DocumentControllerTest {
         mockMvc.perform(multipart(DOCUMENT_API_ENDPOINT)
                         .file(file)
                         .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpect(MockMvcResultMatchers.status().isCreated())
+                .andExpect(status().isCreated())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(mockDocument.getId().toString()))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.name").value(mockDocument.getName()))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.type").value(mockDocument.getType()))
@@ -82,7 +84,7 @@ class DocumentControllerTest {
         mockMvc.perform(multipart(DOCUMENT_API_ENDPOINT)
                         .file(file)
                         .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError())
+                .andExpect(status().isInternalServerError())
                 .andExpect(MockMvcResultMatchers.content().string("Failed to add document: Document service failed"));
     }
 
@@ -97,10 +99,42 @@ class DocumentControllerTest {
         when(documentService.getFileBytes(filename)).thenReturn(file.getBytes());
 
         mockMvc.perform(get(DOCUMENT_API_ENDPOINT + "/" + filename))
-                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.content().bytes(fileContent));
     }
+    @Test
+    @DisplayName("Should delete document successfully")
+    public void shouldDeleteDocumentSuccessfully() throws Exception {
+        Document mockDocument = DocumentHelperTest.createMockDocument();
+        UUID documentId = mockDocument.getId();
 
+        mockMvc.perform(delete("/api/documents/{documentId}", documentId.toString())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        verify(documentService, times(1)).deleteDocumentById(documentId);
+    }
+    @Test
+    @DisplayName("Should return not found when document not found")
+    public void shouldReturnNotFoundWhenDocumentNotFound() throws Exception {
+
+        UUID documentId = UUID.randomUUID();
+        doThrow(DocumentNotFoundException.class).when(documentService).deleteDocumentById(documentId);
+        mockMvc.perform(delete("/api/documents/{documentId}", documentId.toString())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+    @Test
+    @DisplayName("Should return internal server error when IOException occurs")
+    public void shouldReturnInternalServerErrorWhenIOExceptionOccurs() throws Exception {
+        UUID documentId = UUID.randomUUID();
+        doThrow(IOException.class).when(documentService).deleteDocumentById(documentId);
+
+
+        mockMvc.perform(delete("/api/documents/{documentId}", documentId.toString())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError());
+    }
     @Test
     @DisplayName("should return 404 when file does not exist")
     void should_return_404_when_file_does_not_exist() throws Exception {
@@ -109,7 +143,7 @@ class DocumentControllerTest {
         when(documentService.getFileBytes(filename)).thenThrow(new IOException());
 
         mockMvc.perform(get(DOCUMENT_API_ENDPOINT + "/" + filename))
-                .andExpect(MockMvcResultMatchers.status().isNotFound());
+                .andExpect(status().isNotFound());
     }
 
 
@@ -127,7 +161,7 @@ class DocumentControllerTest {
                         .param("sortBy", DEFAULT_DOCUMENT_SORT_BY)
                         .param("sortDirection", DEFAULT_SORT_DIRECTION)
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.content.length()").value(2))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.content[0].name").value("doc1"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.content[1].name").value("doc2"));
@@ -149,7 +183,7 @@ class DocumentControllerTest {
                         .param("sortBy", DEFAULT_DOCUMENT_SORT_BY)
                         .param("sortDirection", DEFAULT_SORT_DIRECTION)
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isNoContent());
+                .andExpect(status().isNoContent());
     }
 
     @Test
@@ -161,8 +195,9 @@ class DocumentControllerTest {
                         .param("sortBy", DEFAULT_DOCUMENT_SORT_BY)
                         .param("sortDirection", DEFAULT_SORT_DIRECTION)
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(status().isBadRequest());
 
     }
+
 }
 
