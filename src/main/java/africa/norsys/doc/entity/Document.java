@@ -4,16 +4,13 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
-
-
 import java.time.LocalDate;
-import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
 @Getter
 @Setter
-@Builder
+@ToString
 @Entity
 @Builder
 @NoArgsConstructor
