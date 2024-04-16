@@ -204,5 +204,40 @@ class DocumentControllerTest {
     }
 
 
+    @Test
+    @DisplayName("Should search documents by keyword and date")
+    void should_search_documents_by_keyword_and_date() throws Exception {
+
+        String keyword = "test";
+        String date = "2024-04-16";
+        List<Document> expectedDocuments = Collections.singletonList(DocumentHelperTest.createMockDocument());
+
+        when(documentService.searchByKeyword(keyword, date)).thenReturn(expectedDocuments);
+
+        mockMvc.perform(get(DOCUMENT_API_ENDPOINT + "/search")
+                        .param("keyword", keyword)
+                        .param("date", date)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.length()").value(expectedDocuments.size()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$[0].name").value(expectedDocuments.get(0).getName()));
+    }
+    @Test
+    @DisplayName("Should handle DocumentNotFoundException when no documents are found")
+    void should_handle_document_not_found_exception_when_no_documents_found() throws Exception {
+        String keyword = "test";
+        String date = "2024-04-16";
+
+        when(documentService.searchByKeyword(keyword, date)).thenThrow(new DocumentNotFoundException("No documents found"));
+
+        mockMvc.perform(get(DOCUMENT_API_ENDPOINT + "/search")
+                        .param("keyword", keyword)
+                        .param("date", date)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isNotFound())
+                .andExpect(MockMvcResultMatchers.content().string("No documents found"));
+    }
+
+
 }
 

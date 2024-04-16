@@ -195,4 +195,50 @@ class DocumentServiceTest {
                 "Exception message should match");
     }
 
+
+    @Test
+    @DisplayName("Should search documents by keyword and date")
+    void should_search_documents_by_keyword_and_date() {
+
+        String keyword = "test";
+        String date = "2024-04-16";
+        List<Document> expectedDocuments = Collections.singletonList(DocumentHelperTest.createMockDocument());
+
+        when(documentRepository.searchByKeyword(keyword.toLowerCase(), date)).thenReturn(expectedDocuments);
+
+        List<Document> result = documentService.searchByKeyword(keyword, date);
+
+        assertEquals(expectedDocuments.size(), result.size(), "Number of documents should match");
+        assertEquals(expectedDocuments, result, "Returned documents should match expected documents");
+    }
+
+    @Test
+    @DisplayName("Should search documents by keyword only")
+    void should_search_documents_by_keyword_only() {
+
+        String keyword = "test";
+        String date = null;
+        List<Document> expectedDocuments = Collections.singletonList(DocumentHelperTest.createMockDocument());
+
+        when(documentRepository.searchByKeyword(keyword.toLowerCase(), date)).thenReturn(expectedDocuments);
+
+        List<Document> result = documentService.searchByKeyword(keyword, date);
+
+        assertEquals(expectedDocuments.size(), result.size(), "Number of documents should match");
+        assertEquals(expectedDocuments, result, "Returned documents should match expected documents");
+    }
+
+    @Test
+    @DisplayName("Should throw DocumentNotFoundException when no documents are found")
+    void shouldThrowDocumentNotFoundExceptionWhenNoDocumentsFound() {
+
+        String keyword = "test";
+        String date = "2024-04-16";
+
+        when(documentRepository.searchByKeyword(keyword.toLowerCase(), date)).thenReturn(Collections.emptyList());
+
+        assertThrows(DocumentNotFoundException.class, () -> documentService.searchByKeyword(keyword, date));
+    }
+
+
 }
