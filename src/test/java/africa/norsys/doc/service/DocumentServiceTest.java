@@ -18,14 +18,11 @@ import org.springframework.data.domain.*;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static africa.norsys.doc.util.DocumentHelperTest.BASE_URL;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -61,7 +58,7 @@ class DocumentServiceTest {
         assertEquals(savedDocument.getType(), result.getType());
         assertEquals(savedDocument.getCreationDate(), result.getCreationDate());
         assertEquals(savedDocument.getMetadata(), result.getMetadata());
-        assertEquals(BASE_URL + "/api/documents/" + savedDocument.getId() + ".txt", result.getStorageLocation());
+        assertEquals(BASE_URL + "/api/documents/file/" + savedDocument.getId() + ".txt", result.getStorageLocation());
     }
 
 
@@ -76,7 +73,7 @@ class DocumentServiceTest {
         when(documentRepository.findAll(pageable)).thenReturn(mockPage);
 
         // Act
-        Page<Document> result = documentService.getAllDocuments(0, 5, "asc", "id");
+        Page<Document> result = documentService.getAllDocuments(1, 5, "asc", "id");
 
         // Assert
         Assertions.assertAll(
@@ -99,7 +96,7 @@ class DocumentServiceTest {
         // Act
         when(documentRepository.findAll(any(Pageable.class))).thenReturn(emptyPage);
         Throwable exception = Assertions.assertThrows(DocumentNotFoundException.class, () -> {
-            documentService.getAllDocuments(0, 5, "asc", "id");
+            documentService.getAllDocuments(1, 5, "asc", "id");
         });
 
         // Assert
@@ -118,7 +115,7 @@ class DocumentServiceTest {
 
         // Act
         when(documentRepository.findAll(pageable)).thenReturn(page);
-        Page<Document> result = documentService.getAllDocuments(0, 2, "asc", "id");
+        Page<Document> result = documentService.getAllDocuments(1, 2, "asc", "id");
 
         // Assert
         Assertions.assertEquals(page, result, "Returned page should match expected page");
@@ -139,7 +136,7 @@ class DocumentServiceTest {
 
         // Act
         when(documentRepository.findAll(pageable)).thenReturn(sortedPage);
-        Page<Document> result = documentService.getAllDocuments(0, 5, "asc", "name");
+        Page<Document> result = documentService.getAllDocuments(1, 5, "asc", "name");
 
         // Assert
         Assertions.assertEquals(sortedPage, result, "Returned page should be sorted by name in ascending order");
@@ -160,10 +157,42 @@ class DocumentServiceTest {
 
         // Act
         when(documentRepository.findAll(pageable)).thenReturn(sortedPage);
-        Page<Document> result = documentService.getAllDocuments(0, 5, "desc", "id");
+        Page<Document> result = documentService.getAllDocuments(1, 5, "desc", "id");
 
         // Assert
         Assertions.assertEquals(sortedPage, result, "Returned page should be sorted by id in descending order");
 
     }
+
+    @Test
+    @DisplayName("Should return document by id")
+    void should_return_document_by_id() {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        Document mockDocument = DocumentHelperTest.createMockDocument();
+        mockDocument.setId(id);
+
+        when(documentRepository.findById(id)).thenReturn(Optional.of(mockDocument));
+
+        Optional<Document> result = documentService.getDocumentById(id);
+
+        assertTrue(result.isPresent(), "Document should be present");
+        assertEquals(mockDocument, result.get(), "Returned document should match mock document");
+    }
+
+    @Test
+    @DisplayName("Should throw DocumentNotFoundException when document not found")
+    void shouldThrowDocumentNotFoundExceptionWhenDocumentNotFound() {
+
+        UUID id = UUID.randomUUID();
+        when(documentRepository.findById(id)).thenReturn(Optional.empty());
+
+        DocumentNotFoundException exception = assertThrows(DocumentNotFoundException.class, () -> {
+            documentService.getDocumentById(id);
+        });
+
+        assertEquals("Document with id " + id + " not found", exception.getMessage(),
+                "Exception message should match");
+    }
+
 }

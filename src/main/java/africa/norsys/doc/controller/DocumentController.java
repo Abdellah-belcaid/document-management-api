@@ -12,6 +12,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
+import java.util.Optional;
+import java.util.UUID;
 
 import static africa.norsys.doc.constant.PaginationConstants.*;
 
@@ -25,27 +27,18 @@ public class DocumentController {
 
 
     @PostMapping
-    public ResponseEntity<?> addDocument(@RequestParam("file") MultipartFile file) {
-        try {
-            String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().toUriString();
+    public ResponseEntity<?> addDocument(@RequestParam("file") MultipartFile file) throws IOException {
+        String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().toUriString();
 
-            Document savedDocument = documentService.addDocument(file, baseUrl);
-            return ResponseEntity.status(HttpStatus.CREATED).body(savedDocument);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to add document: " + e.getMessage());
-        }
+        Document savedDocument = documentService.addDocument(file, baseUrl);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedDocument);
     }
 
 
-    @GetMapping("/{filename:.+}")
-    public ResponseEntity<byte[]> getFile(@PathVariable String filename) {
-        try {
-
-            byte[] fileBytes = documentService.getFileBytes(filename);
-            return ResponseEntity.ok().body(fileBytes);
-        } catch (IOException e) {
-            return ResponseEntity.notFound().build();
-        }
+    @GetMapping("/file/{filename:.+}")
+    public ResponseEntity<byte[]> getFile(@PathVariable String filename) throws IOException {
+        byte[] fileBytes = documentService.getFileBytes(filename);
+        return ResponseEntity.ok().body(fileBytes);
     }
 
 
@@ -59,5 +52,13 @@ public class DocumentController {
         Page<Document> documentPage = documentService.getAllDocuments(page, size, sortDirection, sortBy);
         return documentPage == null || documentPage.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(documentPage);
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Document> getDocumentById(@PathVariable UUID id) {
+        Optional<Document> optionalDocument = documentService.getDocumentById(id);
+        return optionalDocument.map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
 
 }
