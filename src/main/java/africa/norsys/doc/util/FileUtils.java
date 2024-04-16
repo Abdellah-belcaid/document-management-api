@@ -39,7 +39,7 @@ public class FileUtils {
                     fileStorageLocation.resolve(filename), StandardCopyOption.REPLACE_EXISTING);
 
             // Generate and return the file URL
-            return baseUrl + "/api/documents/" + filename;
+            return baseUrl + "/api/documents/file/" + filename;
         } catch (Exception e) {
             log.error("Unable to save file for id: {}, filename: {}", id, filename, e);
             throw new IOException("Unable to save file", e);
