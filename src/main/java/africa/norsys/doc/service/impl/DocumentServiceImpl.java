@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,9 +34,8 @@ public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentRepository documentRepository;
 
-
     @Override
-    public Document addDocument(MultipartFile file, String baseUrl) throws IOException {
+    public Document addDocument(MultipartFile file, String baseUrl) throws DocumentNotAddedException {
 
         Document document = Document.builder()
                 .name(file.getOriginalFilename())
@@ -91,6 +91,21 @@ public class DocumentServiceImpl implements DocumentService {
                 }
         );
         return document;
+    }
+
+
+    @Override
+    public List<Document> searchByKeyword(String keyword, String date) {
+        try {
+            List<Document> documents = documentRepository.searchByKeyword(keyword.toLowerCase(), date);
+            if (documents.isEmpty()) {
+                throw new DocumentNotFoundException("No documents found with the provided keyword and date.");
+            }
+            return documents;
+        } catch (Exception e) {
+            log.error("An error occurred while searching documents by keyword: {}", e.getMessage());
+            throw new DocumentNotFoundException("Failed to search documents by keyword: " + e.getMessage());
+        }
     }
 
 }
