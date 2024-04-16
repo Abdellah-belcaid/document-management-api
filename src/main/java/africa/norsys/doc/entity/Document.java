@@ -1,12 +1,20 @@
 package africa.norsys.doc.entity;
 
 import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
 @Entity
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "documents")
 public class Document {
 
@@ -22,7 +30,8 @@ public class Document {
     private String type;
 
     @Column(name = "creation_date")
-    private Date creationDate;
+    @CreationTimestamp
+    private LocalDate creationDate;
 
 
     @Column(name = "storage_location")
