@@ -20,7 +20,6 @@ public class FileUtils {
     public static Map<String, String> extractMetadata(MultipartFile file) {
         if (file == null) return new HashMap<>();
         Map<String, String> metadataMap = new HashMap<>();
-
         metadataMap.put("size", String.valueOf(file.getSize()));
         metadataMap.put("extension", (extractFileExtension(file.getOriginalFilename())));
         return metadataMap;
@@ -41,7 +40,7 @@ public class FileUtils {
                     fileStorageLocation.resolve(filename), StandardCopyOption.REPLACE_EXISTING);
 
             // Generate and return the file URL
-            return baseUrl + "/api/documents/" + filename;
+            return baseUrl + "/api/documents/file/" + filename;
         } catch (Exception e) {
             log.error("Unable to save file for id: {}, filename: {}", id, filename, e);
             throw new IOException("Unable to save file", e);

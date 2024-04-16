@@ -19,6 +19,7 @@ import org.springframework.mock.web.MockMultipartFile;
 
 
 import java.util.*;
+import java.io.IOException;
 import java.util.stream.Collectors;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -61,7 +62,7 @@ class DocumentServiceTest {
         assertEquals(savedDocument.getType(), result.getType());
         assertEquals(savedDocument.getCreationDate(), result.getCreationDate());
         assertEquals(savedDocument.getMetadata(), result.getMetadata());
-        assertEquals(BASE_URL + "/api/documents/" + savedDocument.getId() + ".txt", result.getStorageLocation());
+        assertEquals(BASE_URL + "/api/documents/file/" + savedDocument.getId() + ".txt", result.getStorageLocation());
     }
 
 
@@ -76,7 +77,7 @@ class DocumentServiceTest {
         when(documentRepository.findAll(pageable)).thenReturn(mockPage);
 
         // Act
-        Page<Document> result = documentService.getAllDocuments(0, 5, "asc", "id");
+        Page<Document> result = documentService.getAllDocuments(1, 5, "asc", "id");
 
         // Assert
         Assertions.assertAll(
@@ -92,14 +93,14 @@ class DocumentServiceTest {
 
     @Test
     @DisplayName("Should return empty page when no document exist")
-    public void shouldThrowExceptionWhenNoExamsExist() {
+    public void shouldThrowExceptionWhenNoDocumentExist() {
         // Arrange
         Page<Document> emptyPage = new PageImpl<>(Collections.emptyList());
 
         // Act
         when(documentRepository.findAll(any(Pageable.class))).thenReturn(emptyPage);
-        Throwable exception = assertThrows(DocumentNotFoundException.class, () -> {
-            documentService.getAllDocuments(0, 5, "asc", "id");
+        Throwable exception = Assertions.assertThrows(DocumentNotFoundException.class, () -> {
+            documentService.getAllDocuments(1, 5, "asc", "id");
         });
 
         // Assert
@@ -118,15 +119,15 @@ class DocumentServiceTest {
 
         // Act
         when(documentRepository.findAll(pageable)).thenReturn(page);
-        Page<Document> result = documentService.getAllDocuments(0, 2, "asc", "id");
+        Page<Document> result = documentService.getAllDocuments(1, 2, "asc", "id");
 
         // Assert
         Assertions.assertEquals(page, result, "Returned page should match expected page");
     }
 
     @Test
-    @DisplayName("Should return exams sorted by name ascending")
-    public void shouldReturnExamsSortedByTitleAscending() {
+    @DisplayName("Should return documents sorted by name ascending")
+    public void shouldReturnDocumentsSortedByTitleAscending() {
         // Arrange
         Pageable pageable = PageRequest.of(0, 5, Sort.Direction.ASC, "name");
 
@@ -139,15 +140,15 @@ class DocumentServiceTest {
 
         // Act
         when(documentRepository.findAll(pageable)).thenReturn(sortedPage);
-        Page<Document> result = documentService.getAllDocuments(0, 5, "asc", "name");
+        Page<Document> result = documentService.getAllDocuments(1, 5, "asc", "name");
 
         // Assert
         Assertions.assertEquals(sortedPage, result, "Returned page should be sorted by name in ascending order");
     }
 
     @Test
-    @DisplayName("Should return exams sorted by id descending")
-    public void shouldReturnExamsSortedByIdDescending() {
+    @DisplayName("Should return documents sorted by id descending")
+    public void shouldReturnDocumentsSortedByIdDescending() {
         // Arrange
         Pageable pageable = PageRequest.of(0, 5, Sort.Direction.DESC, "id");
 
@@ -160,12 +161,90 @@ class DocumentServiceTest {
 
         // Act
         when(documentRepository.findAll(pageable)).thenReturn(sortedPage);
-        Page<Document> result = documentService.getAllDocuments(0, 5, "desc", "id");
+        Page<Document> result = documentService.getAllDocuments(1, 5, "desc", "id");
 
         // Assert
         Assertions.assertEquals(sortedPage, result, "Returned page should be sorted by id in descending order");
 
     }
+
+    @Test
+    @DisplayName("Should return document by id")
+    void should_return_document_by_id() {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        Document mockDocument = DocumentHelperTest.createMockDocument();
+        mockDocument.setId(id);
+
+        when(documentRepository.findById(id)).thenReturn(Optional.of(mockDocument));
+
+        Optional<Document> result = documentService.getDocumentById(id);
+
+        assertTrue(result.isPresent(), "Document should be present");
+        assertEquals(mockDocument, result.get(), "Returned document should match mock document");
+    }
+
+    @Test
+    @DisplayName("Should throw DocumentNotFoundException when document not found")
+    void shouldThrowDocumentNotFoundExceptionWhenDocumentNotFound() {
+
+        UUID id = UUID.randomUUID();
+        when(documentRepository.findById(id)).thenReturn(Optional.empty());
+
+        DocumentNotFoundException exception = assertThrows(DocumentNotFoundException.class, () -> {
+            documentService.getDocumentById(id);
+        });
+
+        assertEquals("Document with id " + id + " not found", exception.getMessage(),
+                "Exception message should match");
+    }
+
+
+    @Test
+    @DisplayName("Should search documents by keyword and date")
+    void should_search_documents_by_keyword_and_date() {
+
+        String keyword = "test";
+        String date = "2024-04-16";
+        List<Document> expectedDocuments = Collections.singletonList(DocumentHelperTest.createMockDocument());
+
+        when(documentRepository.searchByKeyword(keyword.toLowerCase(), date)).thenReturn(expectedDocuments);
+
+        List<Document> result = documentService.searchByKeyword(keyword, date);
+
+        assertEquals(expectedDocuments.size(), result.size(), "Number of documents should match");
+        assertEquals(expectedDocuments, result, "Returned documents should match expected documents");
+    }
+
+    @Test
+    @DisplayName("Should search documents by keyword only")
+    void should_search_documents_by_keyword_only() {
+
+        String keyword = "test";
+        String date = null;
+        List<Document> expectedDocuments = Collections.singletonList(DocumentHelperTest.createMockDocument());
+
+        when(documentRepository.searchByKeyword(keyword.toLowerCase(), date)).thenReturn(expectedDocuments);
+
+        List<Document> result = documentService.searchByKeyword(keyword, date);
+
+        assertEquals(expectedDocuments.size(), result.size(), "Number of documents should match");
+        assertEquals(expectedDocuments, result, "Returned documents should match expected documents");
+    }
+
+    @Test
+    @DisplayName("Should throw DocumentNotFoundException when no documents are found")
+    void shouldThrowDocumentNotFoundExceptionWhenNoDocumentsFound() {
+
+        String keyword = "test";
+        String date = "2024-04-16";
+
+        when(documentRepository.searchByKeyword(keyword.toLowerCase(), date)).thenReturn(Collections.emptyList());
+
+        assertThrows(DocumentNotFoundException.class, () -> documentService.searchByKeyword(keyword, date));
+    }
+
+
     @Test
     void testDeleteDocumentById_WhenDocumentExists_DeletesDocumentSuccessfully() throws DocumentNotFoundException, IOException {
 

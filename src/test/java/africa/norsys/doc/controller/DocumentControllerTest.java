@@ -2,6 +2,9 @@
 package africa.norsys.doc.controller;
 
 import africa.norsys.doc.entity.Document;
+import africa.norsys.doc.exception.DocumentNotAddedException;
+import africa.norsys.doc.exception.DocumentNotFoundException;
+import africa.norsys.doc.exception.FileNotFoundException;
 import africa.norsys.doc.exception.DocumentNotFoundException;
 import africa.norsys.doc.service.DocumentService;
 import africa.norsys.doc.util.DocumentHelperTest;
@@ -26,6 +29,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.Optional;
 
 import static africa.norsys.doc.constant.PaginationConstants.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -79,13 +83,13 @@ class DocumentControllerTest {
         MockMultipartFile file = DocumentHelperTest.createMockMultipartFile();
 
         when(documentService.addDocument(any(MultipartFile.class), any(String.class)))
-                .thenThrow(new RuntimeException("Document service failed"));
+                .thenThrow(new DocumentNotAddedException("Document could not be added"));
 
         mockMvc.perform(multipart(DOCUMENT_API_ENDPOINT)
                         .file(file)
                         .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpect(status().isInternalServerError())
-                .andExpect(MockMvcResultMatchers.content().string("Failed to add document: Document service failed"));
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError())
+                .andExpect(MockMvcResultMatchers.content().string("Document could not be added"));
     }
 
 
@@ -98,8 +102,8 @@ class DocumentControllerTest {
 
         when(documentService.getFileBytes(filename)).thenReturn(file.getBytes());
 
-        mockMvc.perform(get(DOCUMENT_API_ENDPOINT + "/" + filename))
-                .andExpect(status().isOk())
+        mockMvc.perform(get(DOCUMENT_API_ENDPOINT + "/file/" + filename))
+                .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content().bytes(fileContent));
     }
     @Test
@@ -140,10 +144,10 @@ class DocumentControllerTest {
     void should_return_404_when_file_does_not_exist() throws Exception {
         String filename = "nonexistent.txt";
 
-        when(documentService.getFileBytes(filename)).thenThrow(new IOException());
+        when(documentService.getFileBytes(filename)).thenThrow(new FileNotFoundException("File '" + filename + "' not found"));
 
-        mockMvc.perform(get(DOCUMENT_API_ENDPOINT + "/" + filename))
-                .andExpect(status().isNotFound());
+        mockMvc.perform(get(DOCUMENT_API_ENDPOINT + "/file/" + filename))
+                .andExpect(MockMvcResultMatchers.status().isNotFound());
     }
 
 
@@ -198,6 +202,75 @@ class DocumentControllerTest {
                 .andExpect(status().isBadRequest());
 
     }
+
+    @Test
+    @DisplayName("Should return document by id")
+    void should_return_document_by_id() throws Exception {
+
+        UUID id = UUID.randomUUID();
+        Document mockDocument = DocumentHelperTest.createMockDocument();
+        mockDocument.setId(id);
+
+        when(documentService.getDocumentById(id)).thenReturn(Optional.of(mockDocument));
+
+        mockMvc.perform(get(DOCUMENT_API_ENDPOINT + "/" + id))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(mockDocument.getId().toString()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.name").value(mockDocument.getName()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.type").value(mockDocument.getType()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.creationDate").value(mockDocument.getCreationDate().toString()));
+    }
+
+    @Test
+    @DisplayName("Should return 404 with custom message when document with given id does not exist")
+    void should_return_404_with_custom_message_when_document_with_given_id_does_not_exist() throws Exception {
+
+        UUID id = UUID.randomUUID();
+        String expectedErrorMessage = "Document with id " + id + " not found";
+
+        when(documentService.getDocumentById(id)).thenThrow(new DocumentNotFoundException(expectedErrorMessage));
+
+
+        mockMvc.perform(get(DOCUMENT_API_ENDPOINT + "/" + id))
+                .andExpect(MockMvcResultMatchers.status().isNotFound())
+                .andExpect(MockMvcResultMatchers.content().string(expectedErrorMessage));
+    }
+
+
+    @Test
+    @DisplayName("Should search documents by keyword and date")
+    void should_search_documents_by_keyword_and_date() throws Exception {
+
+        String keyword = "test";
+        String date = "2024-04-16";
+        List<Document> expectedDocuments = Collections.singletonList(DocumentHelperTest.createMockDocument());
+
+        when(documentService.searchByKeyword(keyword, date)).thenReturn(expectedDocuments);
+
+        mockMvc.perform(get(DOCUMENT_API_ENDPOINT + "/search")
+                        .param("keyword", keyword)
+                        .param("date", date)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.length()").value(expectedDocuments.size()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$[0].name").value(expectedDocuments.get(0).getName()));
+    }
+    @Test
+    @DisplayName("Should handle DocumentNotFoundException when no documents are found")
+    void should_handle_document_not_found_exception_when_no_documents_found() throws Exception {
+        String keyword = "test";
+        String date = "2024-04-16";
+
+        when(documentService.searchByKeyword(keyword, date)).thenThrow(new DocumentNotFoundException("No documents found"));
+
+        mockMvc.perform(get(DOCUMENT_API_ENDPOINT + "/search")
+                        .param("keyword", keyword)
+                        .param("date", date)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isNotFound())
+                .andExpect(MockMvcResultMatchers.content().string("No documents found"));
+    }
+
 
 }
 
