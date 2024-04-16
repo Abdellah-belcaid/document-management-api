@@ -1,4 +1,12 @@
 package africa.norsys.doc.service;
 
+import africa.norsys.doc.entity.Document;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+
 public interface DocumentService {
+    Document addDocument(MultipartFile file, String baseUrl) throws IOException;
+
+    byte[] getFileBytes(String filename) throws IOException;
 }
