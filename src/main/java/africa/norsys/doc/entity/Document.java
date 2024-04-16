@@ -10,12 +10,12 @@ import java.util.UUID;
 
 @Getter
 @Setter
-@Builder
 @ToString
 @Entity
-@Table(name = "documents")
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(name = "documents")
 public class Document {
 
     @Id

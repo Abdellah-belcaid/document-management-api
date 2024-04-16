@@ -5,9 +5,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class DocumentHelperTest {
 
@@ -34,5 +32,25 @@ public class DocumentHelperTest {
         document.setMetadata(metadataMap);
 
         return document;
+    }
+
+
+    public static List<Document> createMockDocuments() {
+        return Arrays.asList(
+                Document.builder()
+                        .id(UUID.randomUUID())
+                        .name("doc1")
+                        .type("pdf")
+                        .storageLocation("desktop/url/doc1")
+                        .creationDate(LocalDate.now())
+                        .build(),
+                Document.builder()
+                        .id(UUID.randomUUID())
+                        .name("doc2")
+                        .type("pdf")
+                        .storageLocation("desktop/url/doc2")
+                        .creationDate(LocalDate.now())
+                        .build()
+        );
     }
 }

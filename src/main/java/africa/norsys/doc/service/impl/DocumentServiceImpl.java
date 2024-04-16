@@ -1,11 +1,16 @@
 package africa.norsys.doc.service.impl;
 
 import africa.norsys.doc.entity.Document;
+import africa.norsys.doc.exception.DocumentNotFoundException;
 import africa.norsys.doc.repository.DocumentRepository;
 import africa.norsys.doc.service.DocumentService;
 import africa.norsys.doc.util.FileUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,10 +18,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.Optional;
 
 import static africa.norsys.doc.constant.Constant.FILE_STORAGE_LOCATION;
+import static africa.norsys.doc.util.FileUtils.saveFileAndGenerateUrl;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +28,7 @@ import static africa.norsys.doc.constant.Constant.FILE_STORAGE_LOCATION;
 public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentRepository documentRepository;
+
 
     @Override
     public Document addDocument(MultipartFile file, String baseUrl) throws IOException {
@@ -57,34 +62,13 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
 
-    public String saveFileAndGenerateUrl(String id, MultipartFile file, String baseUrl) throws IOException {
-        String filename = id + extractFileExtension(file.getOriginalFilename());
-
-        try {
-            Path fileStorageLocation = Paths.get(FILE_STORAGE_LOCATION).toAbsolutePath().normalize();
-            if (!Files.exists(fileStorageLocation)) {
-                Files.createDirectories(fileStorageLocation);
-            }
-
-            // Save the file
-            Files.copy(file.getInputStream(),
-                    fileStorageLocation.resolve(filename), StandardCopyOption.REPLACE_EXISTING);
-
-            // Generate and return the file URL
-            return baseUrl + "/api/documents/" + filename;
-        } catch (Exception e) {
-            log.error("Unable to save file for id: {}, filename: {}", id, filename, e);
-            throw new IOException("Unable to save file", e);
-        }
+    @Override
+    public Page<Document> getAllDocuments(Integer page, Integer pageSize, String sortDirection, String sortBy) {
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.Direction.fromString(sortDirection), sortBy);
+        System.out.println("page" + page + "size" + pageSize + "sortDirection" + sortDirection + "sortBy" + sortBy);
+        Page<Document> documents = documentRepository.findAll(pageable);
+        if (documents.isEmpty()) throw new DocumentNotFoundException("no document found.");
+        return documents;
     }
-
-
-    private String extractFileExtension(String filename) {
-        return Optional.of(filename)
-                .filter(name -> name.contains("."))
-                .map(name -> "." + name.substring(filename.lastIndexOf(".") + 1))
-                .orElse("");
-    }
-
 
 }
