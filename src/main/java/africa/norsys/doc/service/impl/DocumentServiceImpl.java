@@ -20,12 +20,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.UUID;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static africa.norsys.doc.constant.Constant.FILE_STORAGE_LOCATION;
+import static africa.norsys.doc.constant.PaginationConstants.DEFAULT_DOCUMENT_SORT_BY;
 import static africa.norsys.doc.util.FileUtils.saveFileAndGenerateUrl;
 
 @Service
@@ -97,9 +96,10 @@ public class DocumentServiceImpl implements DocumentService {
 
 
     @Override
-    public List<Document> searchByKeyword(String keyword, String date) {
+    public Page<Document> searchByKeyword(String keyword, String date, int page, int size) {
         try {
-            List<Document> documents = documentRepository.searchByKeyword(keyword.toLowerCase(), date);
+            Pageable pageable = PageRequest.of(page - 1, size, Sort.Direction.ASC, DEFAULT_DOCUMENT_SORT_BY);
+            Page<Document> documents = documentRepository.searchByKeyword(keyword.toLowerCase(), date, pageable);
             if (documents.isEmpty()) {
                 throw new DocumentNotFoundException("No documents found with the provided keyword and date.");
             }
@@ -109,12 +109,13 @@ public class DocumentServiceImpl implements DocumentService {
             throw new DocumentNotFoundException("Failed to search documents by keyword: " + e.getMessage());
         }
     }
+
     @Override
     public void deleteDocumentById(UUID documentId) throws DocumentNotFoundException, IOException {
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new DocumentNotFoundException("Document not found with id: " + documentId));
 
-        String filename = documentId+ document.getMetadata().get("extension");
+        String filename = documentId + document.getMetadata().get("extension");
         Path filePath = Paths.get(FILE_STORAGE_LOCATION).resolve(filename).normalize();
         Files.deleteIfExists(filePath);
         documentRepository.delete(document);

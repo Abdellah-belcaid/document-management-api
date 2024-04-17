@@ -17,14 +17,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 import org.springframework.mock.web.MockMultipartFile;
 
-
+import java.io.IOException;
 import java.util.*;
-import java.io.IOException;
 import java.util.stream.Collectors;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
+import static africa.norsys.doc.constant.PaginationConstants.*;
 import static africa.norsys.doc.util.DocumentHelperTest.BASE_URL;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -199,51 +196,63 @@ class DocumentServiceTest {
                 "Exception message should match");
     }
 
-
     @Test
     @DisplayName("Should search documents by keyword and date")
     void should_search_documents_by_keyword_and_date() {
-
+        // Given
         String keyword = "test";
         String date = "2024-04-16";
-        List<Document> expectedDocuments = Collections.singletonList(DocumentHelperTest.createMockDocument());
+        Page<Document> expectedPage = new PageImpl<>(Collections.singletonList(DocumentHelperTest.createMockDocument()));
+        Pageable pageable = PageRequest.of(DEFAULT_PAGE - 1, DEFAULT_PAGE_SIZE, Sort.Direction.ASC, DEFAULT_DOCUMENT_SORT_BY);
 
-        when(documentRepository.searchByKeyword(keyword.toLowerCase(), date)).thenReturn(expectedDocuments);
+        when(documentRepository.searchByKeyword(keyword.toLowerCase(), date, pageable)).thenReturn(expectedPage);
 
-        List<Document> result = documentService.searchByKeyword(keyword, date);
+        // When
+        Page<Document> resultPage = documentService.searchByKeyword(keyword, date, DEFAULT_PAGE, DEFAULT_PAGE_SIZE);
 
-        assertEquals(expectedDocuments.size(), result.size(), "Number of documents should match");
-        assertEquals(expectedDocuments, result, "Returned documents should match expected documents");
+        // Then
+        assertEquals(expectedPage.getTotalElements(), resultPage.getTotalElements(), "Total number of documents should match");
+        assertEquals(expectedPage.getContent(), resultPage.getContent(), "Returned documents should match expected documents");
     }
 
     @Test
     @DisplayName("Should search documents by keyword only")
     void should_search_documents_by_keyword_only() {
-
+        // Given
         String keyword = "test";
         String date = null;
-        List<Document> expectedDocuments = Collections.singletonList(DocumentHelperTest.createMockDocument());
+        Page<Document> expectedPage = new PageImpl<>(Collections.singletonList(DocumentHelperTest.createMockDocument()));
+        Pageable pageable = PageRequest.of(DEFAULT_PAGE - 1, DEFAULT_PAGE_SIZE, Sort.Direction.ASC, DEFAULT_DOCUMENT_SORT_BY);
 
-        when(documentRepository.searchByKeyword(keyword.toLowerCase(), date)).thenReturn(expectedDocuments);
+        when(documentRepository.searchByKeyword(keyword.toLowerCase(), date, pageable)).thenReturn(expectedPage);
 
-        List<Document> result = documentService.searchByKeyword(keyword, date);
+        // When
+        Page<Document> resultPage = documentService.searchByKeyword(keyword, date, DEFAULT_PAGE, DEFAULT_PAGE_SIZE);
 
-        assertEquals(expectedDocuments.size(), result.size(), "Number of documents should match");
-        assertEquals(expectedDocuments, result, "Returned documents should match expected documents");
+        // Then
+        assertEquals(expectedPage.getTotalElements(), resultPage.getTotalElements(), "Total number of documents should match");
+        assertEquals(expectedPage.getContent(), resultPage.getContent(), "Returned documents should match expected documents");
     }
 
     @Test
     @DisplayName("Should throw DocumentNotFoundException when no documents are found")
     void shouldThrowDocumentNotFoundExceptionWhenNoDocumentsFound() {
-
+        // Given
         String keyword = "test";
         String date = "2024-04-16";
+        Pageable pageable = PageRequest.of(DEFAULT_PAGE - 1, DEFAULT_PAGE_SIZE, Sort.Direction.ASC, DEFAULT_DOCUMENT_SORT_BY);
 
-        when(documentRepository.searchByKeyword(keyword.toLowerCase(), date)).thenReturn(Collections.emptyList());
+        // Stub the repository method call
+        when(documentRepository.searchByKeyword(keyword.toLowerCase(), date, pageable))
+                .thenReturn(new PageImpl<>(Collections.emptyList()));
 
-        assertThrows(DocumentNotFoundException.class, () -> documentService.searchByKeyword(keyword, date));
+        // When/Then
+        assertThrows(DocumentNotFoundException.class, () ->
+                documentService.searchByKeyword(keyword, date, DEFAULT_PAGE, DEFAULT_PAGE_SIZE));
+
+        // Optionally, verify that the repository method was called
+        verify(documentRepository).searchByKeyword(keyword.toLowerCase(), date, pageable);
     }
-
 
     @Test
     void testDeleteDocumentById_WhenDocumentExists_DeletesDocumentSuccessfully() throws DocumentNotFoundException, IOException {
@@ -257,6 +266,7 @@ class DocumentServiceTest {
         verify(documentRepository, times(1)).findById(documentId);
         verify(documentRepository, times(1)).delete(mockDocument);
     }
+
     @Test
     void testDeleteDocumentByIdWhenDocumentNotFound() {
 

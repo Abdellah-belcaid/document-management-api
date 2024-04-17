@@ -13,7 +13,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -54,6 +53,7 @@ public class DocumentController {
         Page<Document> documentPage = documentService.getAllDocuments(page, size, sortDirection, sortBy);
         return documentPage == null || documentPage.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(documentPage);
     }
+
     @DeleteMapping("/{documentId}")
     public ResponseEntity<Void> deleteDocument(@PathVariable UUID documentId) {
         try {
@@ -74,18 +74,17 @@ public class DocumentController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<Document>> searchDocuments(
+    public ResponseEntity<Page<Document>> searchDocuments(
             @RequestParam("keyword") String keyword,
-            @RequestParam(value = "date", required = false) String date) {
+            @RequestParam(value = "date", required = false) String date,
+            @RequestParam(defaultValue = DEFAULT_PAGE + "") @Min(0) int page,
+            @RequestParam(defaultValue = DEFAULT_PAGE_SIZE + "") @Min(1) int size) {
 
-        List<Document> documents = documentService.searchByKeyword(keyword, date);
+        Page<Document> documents = documentService.searchByKeyword(keyword, date, page, size);
 
-        if (documents.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        } else {
-            return ResponseEntity.ok(documents);
-        }
-
+        return documents.isEmpty() ?
+                ResponseEntity.noContent().build() :
+                ResponseEntity.ok(documents);
     }
 
 
