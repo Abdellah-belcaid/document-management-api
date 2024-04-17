@@ -1,12 +1,13 @@
 package africa.norsys.doc.repository;
 
 import africa.norsys.doc.entity.Document;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -29,7 +30,7 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
             "AND (:date IS NULL OR DATE(d.creation_date) = DATE(:date)) " +
             "OR d.id IN (SELECT dm.document_id FROM document_metadata dm WHERE LOWER(dm.key) LIKE lower(concat('%', :keyword, '%')) AND LOWER(dm.value) LIKE lower(concat('%', :keyword, '%')))",
             nativeQuery = true)
-    List<Document> searchByKeyword(@Param("keyword") String keyword, @Param("date") String date);
+    Page<Document> searchByKeyword(@Param("keyword") String keyword, @Param("date") String date, Pageable pageable);
 
 
 }

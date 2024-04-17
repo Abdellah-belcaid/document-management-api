@@ -240,32 +240,44 @@ class DocumentControllerTest {
     @Test
     @DisplayName("Should search documents by keyword and date")
     void should_search_documents_by_keyword_and_date() throws Exception {
-
+        // Given
         String keyword = "test";
         String date = "2024-04-16";
-        List<Document> expectedDocuments = Collections.singletonList(DocumentHelperTest.createMockDocument());
+        int page = 0;
+        int size = 10;
+        Page<Document> expectedPage = new PageImpl<>(Collections.singletonList(DocumentHelperTest.createMockDocument()));
 
-        when(documentService.searchByKeyword(keyword, date)).thenReturn(expectedDocuments);
+        when(documentService.searchByKeyword(keyword, date, page, size)).thenReturn(expectedPage);
 
+        // When/Then
         mockMvc.perform(get(DOCUMENT_API_ENDPOINT + "/search")
                         .param("keyword", keyword)
                         .param("date", date)
+                        .param("page", String.valueOf(page))
+                        .param("size", String.valueOf(size))
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.length()").value(expectedDocuments.size()))
-                .andExpect(MockMvcResultMatchers.jsonPath("$[0].name").value(expectedDocuments.get(0).getName()));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content.length()").value(expectedPage.getContent().size()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content[0].name").value(expectedPage.getContent().get(0).getName()));
     }
+
     @Test
     @DisplayName("Should handle DocumentNotFoundException when no documents are found")
     void should_handle_document_not_found_exception_when_no_documents_found() throws Exception {
+        // Given
         String keyword = "test";
         String date = "2024-04-16";
+        int page = 0;
+        int size = 10;
 
-        when(documentService.searchByKeyword(keyword, date)).thenThrow(new DocumentNotFoundException("No documents found"));
+        when(documentService.searchByKeyword(keyword, date, page, size)).thenThrow(new DocumentNotFoundException("No documents found"));
 
+        // When/Then
         mockMvc.perform(get(DOCUMENT_API_ENDPOINT + "/search")
                         .param("keyword", keyword)
                         .param("date", date)
+                        .param("page", String.valueOf(page))
+                        .param("size", String.valueOf(size))
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isNotFound())
                 .andExpect(MockMvcResultMatchers.content().string("No documents found"));
