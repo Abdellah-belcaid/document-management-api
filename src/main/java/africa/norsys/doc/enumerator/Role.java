@@ -1,4 +1,4 @@
-package africa.norsys.doc.entity.enums;
+package africa.norsys.doc.enumerator;
 
 public enum Role {
     ADMIN,

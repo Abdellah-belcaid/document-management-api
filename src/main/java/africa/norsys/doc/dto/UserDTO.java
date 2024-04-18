@@ -1,7 +1,7 @@
 package africa.norsys.doc.dto;
 
 
-import africa.norsys.doc.entity.enums.Role;
+import africa.norsys.doc.enumerator.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

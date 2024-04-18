@@ -1,7 +1,7 @@
 package africa.norsys.doc.repository;
 
 import africa.norsys.doc.entity.User;
-import africa.norsys.doc.entity.enums.Role;
+import africa.norsys.doc.enumerator.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
