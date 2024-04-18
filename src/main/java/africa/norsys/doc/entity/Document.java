@@ -1,5 +1,6 @@
 package africa.norsys.doc.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -31,6 +32,9 @@ public class Document {
     @Column(name = "name")
     private String name;
 
+    @Column(name = "description")
+    private String description;
+
     @Column(name = "type")
     private String type;
 
@@ -41,6 +45,10 @@ public class Document {
 
     @Column(name = "storage_location")
     private String storageLocation;
+
+    @OneToOne(mappedBy = "document", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private DocumentHash documentHash;
 
     @ElementCollection
     @CollectionTable(name = "document_metadata", joinColumns = @JoinColumn(name = "document_id"))

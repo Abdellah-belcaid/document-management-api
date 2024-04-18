@@ -31,6 +31,8 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
             "OR d.id IN (SELECT dm.document_id FROM document_metadata dm WHERE LOWER(dm.key) LIKE lower(concat('%', :keyword, '%')) AND LOWER(dm.value) LIKE lower(concat('%', :keyword, '%')))",
             nativeQuery = true)
     Page<Document> searchByKeyword(@Param("keyword") String keyword, @Param("date") String date, Pageable pageable);
+    boolean existsByDocumentHash_HashValue(String fileHash);
 
 
+    //boolean existsByFileHash(String fileHash);
 }

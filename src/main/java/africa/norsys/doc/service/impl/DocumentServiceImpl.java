@@ -1,9 +1,12 @@
 package africa.norsys.doc.service.impl;
 
 import africa.norsys.doc.entity.Document;
+import africa.norsys.doc.entity.DocumentHash;
 import africa.norsys.doc.exception.DocumentNotAddedException;
 import africa.norsys.doc.exception.DocumentNotFoundException;
+import africa.norsys.doc.exception.FileAlreadyExistException;
 import africa.norsys.doc.exception.FileNotFoundException;
+import africa.norsys.doc.repository.DocumentHashRepository;
 import africa.norsys.doc.repository.DocumentRepository;
 import africa.norsys.doc.service.DocumentService;
 import africa.norsys.doc.util.FileUtils;
@@ -25,6 +28,7 @@ import java.util.UUID;
 
 import static africa.norsys.doc.constant.Constant.FILE_STORAGE_LOCATION;
 import static africa.norsys.doc.constant.PaginationConstants.DEFAULT_DOCUMENT_SORT_BY;
+import static africa.norsys.doc.util.FileUtils.generateFileHash;
 import static africa.norsys.doc.util.FileUtils.saveFileAndGenerateUrl;
 
 @Service
@@ -33,32 +37,52 @@ import static africa.norsys.doc.util.FileUtils.saveFileAndGenerateUrl;
 public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentRepository documentRepository;
+    private final DocumentHashRepository documentHashRepository;
 
 
     @Override
-    public Document addDocument(MultipartFile file, String baseUrl) throws IOException {
+    public Document addDocument(Document document, MultipartFile file, String baseUrl) throws DocumentNotAddedException, IOException {
 
-        Document document = Document.builder()
-                .name(file.getOriginalFilename())
-                .type(file.getContentType())
-                .metadata(FileUtils.extractMetadata(file))
-                .build();
+        // Generate hash for the file content
+        String fileHash = generateFileHash(file.getInputStream());
+
+        // Check if a document with the same hash exists
+        if (documentRepository.existsByDocumentHash_HashValue(fileHash)) {
+            throw new FileAlreadyExistException("A document with the same content already exists.");
+        }
+
+        // If document name is not provided, use the original file name
+        if (document.getName().isEmpty())
+            document.setName(file.getOriginalFilename());
+
+        document.setType(file.getContentType());
+        document.setMetadata(FileUtils.extractMetadata(file));
 
         // Save the document to the database
         document = documentRepository.save(document);
+
+        // Save the hash to the database
+        DocumentHash documentHash = DocumentHash.builder()
+                .id(UUID.randomUUID())
+                .document(document)
+                .hashValue(fileHash)
+                .build();
+        documentHashRepository.save(documentHash);
 
         try {
             // Generate and set the storage location URL
             String fileUrl = saveFileAndGenerateUrl(document.getId().toString(), file, baseUrl);
             document.setStorageLocation(fileUrl);
         } catch (IOException e) {
+            // Rollback the saved document and hash
             documentRepository.delete(document);
+            documentHashRepository.delete(documentHash);
             throw new DocumentNotAddedException("Failed to add document: " + e.getMessage());
         }
+
         // Update the document in the database with the storage location URL
         return documentRepository.save(document);
     }
-
 
     @Override
     public byte[] getFileBytes(String filename) throws IOException {
@@ -97,17 +121,14 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     public Page<Document> searchByKeyword(String keyword, String date, int page, int size) {
-        try {
-            Pageable pageable = PageRequest.of(page - 1, size, Sort.Direction.ASC, DEFAULT_DOCUMENT_SORT_BY);
-            Page<Document> documents = documentRepository.searchByKeyword(keyword.toLowerCase(), date, pageable);
-            if (documents.isEmpty()) {
-                throw new DocumentNotFoundException("No documents found with the provided keyword and date.");
-            }
-            return documents;
-        } catch (Exception e) {
-            log.error("An error occurred while searching documents by keyword: {}", e.getMessage());
-            throw new DocumentNotFoundException("Failed to search documents by keyword: " + e.getMessage());
+
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.Direction.ASC, DEFAULT_DOCUMENT_SORT_BY);
+        Page<Document> documents = documentRepository.searchByKeyword(keyword.toLowerCase(), date, pageable);
+        if (documents.isEmpty()) {
+            throw new DocumentNotFoundException("No documents found with the provided keyword and date.");
         }
+        return documents;
+
     }
 
     @Override

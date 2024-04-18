@@ -1,6 +1,7 @@
 package africa.norsys.doc.service;
 
 import africa.norsys.doc.entity.Document;
+import africa.norsys.doc.exception.DocumentNotAddedException;
 import africa.norsys.doc.exception.DocumentNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
@@ -10,7 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface DocumentService {
-    Document addDocument(MultipartFile file, String baseUrl) throws IOException;
+    Document addDocument(Document document, MultipartFile file, String baseUrl) throws DocumentNotAddedException, IOException;
 
     byte[] getFileBytes(String filename) throws IOException;
 

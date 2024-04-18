@@ -1,11 +1,15 @@
 package africa.norsys.doc.util;
 
 import africa.norsys.doc.entity.Document;
+import africa.norsys.doc.entity.DocumentHash;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.*;
+
+import static africa.norsys.doc.util.FileUtils.generateFileHash;
 
 public class DocumentHelperTest {
 
@@ -53,4 +57,16 @@ public class DocumentHelperTest {
                         .build()
         );
     }
+
+    public static DocumentHash createMockDocumentHash(Document savedDocument, MockMultipartFile file) throws IOException, IOException {
+        String fileHash = generateFileHash(file.getInputStream());
+
+        DocumentHash documentHash = new DocumentHash();
+        documentHash.setId(UUID.randomUUID());
+        documentHash.setDocument(savedDocument);
+        documentHash.setHashValue(fileHash);
+
+        return documentHash;
+    }
+
 }
