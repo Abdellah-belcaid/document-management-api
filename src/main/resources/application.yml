@@ -18,10 +18,12 @@ spring:
     properties:
       hibernate:
         show-sql: true
+    hibernate:
+      ddl-auto: create
 
 
   flyway:
-    baseline-on-migrate: true
+    baseline-on-migrate: false
     default-schema: public
     schemas: public
     baseline-version: 0
@@ -39,3 +41,14 @@ spring:
   web:
     resources:
       static-locations: classpath:/static/uploads/
+
+
+  # JWT token properties for authentication and authorization
+app:
+  jwt:
+    secret: "77397A24432646294A404E635266556A586E327235753878214125442A472D4B"
+    expiration-in-ms: 86400000  # JWT expiration time in milliseconds (24 hours)
+
+    # Internal API key for authentication purposes
+  authentication:
+    internal-api-key: InternalApiKey1234!
