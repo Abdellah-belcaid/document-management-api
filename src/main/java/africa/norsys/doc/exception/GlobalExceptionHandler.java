@@ -23,6 +23,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleDocumentNotAddedException(DocumentNotAddedException ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ex.getMessage());
     }
+
+    @ExceptionHandler(FileAlreadyExistException.class)
+    public ResponseEntity<String> handleFileAlreadyExistException(FileAlreadyExistException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+    }
+
 }
 
 

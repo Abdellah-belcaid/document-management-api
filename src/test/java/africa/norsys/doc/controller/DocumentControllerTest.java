@@ -5,9 +5,11 @@ import africa.norsys.doc.entity.Document;
 import africa.norsys.doc.exception.DocumentNotAddedException;
 import africa.norsys.doc.exception.DocumentNotFoundException;
 import africa.norsys.doc.exception.FileNotFoundException;
-import africa.norsys.doc.exception.DocumentNotFoundException;
 import africa.norsys.doc.service.DocumentService;
 import africa.norsys.doc.util.DocumentHelperTest;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,8 +30,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 import java.util.Optional;
+import java.util.UUID;
 
 import static africa.norsys.doc.constant.PaginationConstants.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -49,6 +51,9 @@ class DocumentControllerTest {
     @MockBean
     private DocumentService documentService;
 
+    private final ObjectMapper objectMapper = JsonMapper.builder()
+            .addModule(new JavaTimeModule())
+            .build();
 
     private List<Document> mockDocuments;
 
@@ -60,14 +65,15 @@ class DocumentControllerTest {
     @Test
     @DisplayName("should upload document successfully")
     void should_upload_document_successfully() throws Exception {
-
         Document mockDocument = DocumentHelperTest.createMockDocument();
         MockMultipartFile file = DocumentHelperTest.createMockMultipartFile();
 
-        when(documentService.addDocument(any(MultipartFile.class), any(String.class))).thenReturn(mockDocument);
+        when(documentService.addDocument(any(Document.class), any(MultipartFile.class), any(String.class)))
+                .thenReturn(mockDocument);
 
         mockMvc.perform(multipart(DOCUMENT_API_ENDPOINT)
                         .file(file)
+                        .param("document", objectMapper.writeValueAsString(mockDocument))
                         .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().isCreated())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(mockDocument.getId().toString()))
@@ -81,12 +87,14 @@ class DocumentControllerTest {
     @DisplayName("should handle exception when adding document")
     void should_handle_exception_when_adding_document() throws Exception {
         MockMultipartFile file = DocumentHelperTest.createMockMultipartFile();
+        Document mockDocument = DocumentHelperTest.createMockDocument();
 
-        when(documentService.addDocument(any(MultipartFile.class), any(String.class)))
+        when(documentService.addDocument(any(Document.class), any(MultipartFile.class), any(String.class)))
                 .thenThrow(new DocumentNotAddedException("Document could not be added"));
 
         mockMvc.perform(multipart(DOCUMENT_API_ENDPOINT)
                         .file(file)
+                        .param("document", objectMapper.writeValueAsString(mockDocument))
                         .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError())
                 .andExpect(MockMvcResultMatchers.content().string("Document could not be added"));
@@ -106,6 +114,7 @@ class DocumentControllerTest {
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content().bytes(fileContent));
     }
+
     @Test
     @DisplayName("Should delete document successfully")
     public void shouldDeleteDocumentSuccessfully() throws Exception {
@@ -118,6 +127,7 @@ class DocumentControllerTest {
 
         verify(documentService, times(1)).deleteDocumentById(documentId);
     }
+
     @Test
     @DisplayName("Should return not found when document not found")
     public void shouldReturnNotFoundWhenDocumentNotFound() throws Exception {
@@ -128,6 +138,7 @@ class DocumentControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
     }
+
     @Test
     @DisplayName("Should return internal server error when IOException occurs")
     public void shouldReturnInternalServerErrorWhenIOExceptionOccurs() throws Exception {
@@ -139,6 +150,7 @@ class DocumentControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isInternalServerError());
     }
+
     @Test
     @DisplayName("should return 404 when file does not exist")
     void should_return_404_when_file_does_not_exist() throws Exception {

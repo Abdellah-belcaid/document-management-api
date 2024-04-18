@@ -2,7 +2,10 @@
 package africa.norsys.doc.service;
 
 import africa.norsys.doc.entity.Document;
+import africa.norsys.doc.entity.DocumentHash;
 import africa.norsys.doc.exception.DocumentNotFoundException;
+import africa.norsys.doc.exception.FileAlreadyExistException;
+import africa.norsys.doc.repository.DocumentHashRepository;
 import africa.norsys.doc.repository.DocumentRepository;
 import africa.norsys.doc.service.impl.DocumentServiceImpl;
 import africa.norsys.doc.util.DocumentHelperTest;
@@ -32,6 +35,10 @@ import static org.mockito.Mockito.*;
 class DocumentServiceTest {
     @Mock
     private DocumentRepository documentRepository;
+
+    @Mock
+    private DocumentHashRepository documentHashRepository;
+
     @InjectMocks
     private DocumentServiceImpl documentService;
     private List<Document> mockDocuments;
@@ -42,16 +49,22 @@ class DocumentServiceTest {
     }
 
     @Test
-    @DisplayName("should_ add document Successfully")
+    @DisplayName("should add document Successfully")
     void should_add_document_Successfully() throws IOException {
-        // Mock dependencies
+
         MockMultipartFile file = DocumentHelperTest.createMockMultipartFile();
         Document savedDocument = DocumentHelperTest.createMockDocument();
         when(documentRepository.save(any(Document.class))).thenReturn(savedDocument);
 
-        Document result = documentService.addDocument(file, BASE_URL);
+        DocumentHash savedDocumentHash = DocumentHelperTest.createMockDocumentHash(savedDocument, file);
+        when(documentHashRepository.save(any(DocumentHash.class))).thenReturn(savedDocumentHash);
+
+        Document document = Document.builder().name(file.getOriginalFilename()).build();
+
+        Document result = documentService.addDocument(document, file, BASE_URL);
 
         verify(documentRepository, times(2)).save(any(Document.class));
+        verify(documentHashRepository, times(1)).save(any(DocumentHash.class));
 
         assertNotNull(result);
         assertEquals(savedDocument.getId(), result.getId());
@@ -62,21 +75,48 @@ class DocumentServiceTest {
         assertEquals(BASE_URL + "/api/documents/file/" + savedDocument.getId() + ".txt", result.getStorageLocation());
     }
 
+    @Test
+    @DisplayName("should throw FileAlreadyExistException when adding document with existing hash")
+    void should_throw_FileAlreadyExistException_when_existing_hash() throws IOException {
+        // Mock dependencies
+        MockMultipartFile file = DocumentHelperTest.createMockMultipartFile();
+        Document savedDocument = DocumentHelperTest.createMockDocument();
+
+        // Mocking the scenario where a document with the same hash value already exists
+        when(documentRepository.existsByDocumentHash_HashValue(anyString())).thenReturn(true);
+
+        // Attempt to add a document
+        Document document = Document.builder().name(file.getOriginalFilename()).build();
+
+        // Verify that FileAlreadyExistException is thrown
+        FileAlreadyExistException exception = assertThrows(FileAlreadyExistException.class, () -> {
+            documentService.addDocument(document, file, BASE_URL);
+        });
+
+        // Verify the exception message
+        assertEquals("A document with the same content already exists.", exception.getMessage(),
+                "Exception message should match");
+
+        // Verify that documentRepository.save() and documentHashRepository.save() are not called
+        verify(documentRepository, never()).save(any(Document.class));
+        verify(documentHashRepository, never()).save(any(DocumentHash.class));
+    }
+
 
     @Test
     @DisplayName("Should return all documents")
     public void shouldReturnAllDocuments() {
-        // Arrange
+
         Pageable pageable = PageRequest.of(0, 5, Sort.Direction.ASC, "id");
 
         Page<Document> mockPage = new PageImpl<>(mockDocuments, pageable, mockDocuments.size());
 
         when(documentRepository.findAll(pageable)).thenReturn(mockPage);
 
-        // Act
+
         Page<Document> result = documentService.getAllDocuments(1, 5, "asc", "id");
 
-        // Assert
+
         Assertions.assertAll(
                 () -> Assertions.assertEquals(mockPage, result, "Returned page should match mock page"),
                 () -> Assertions.assertEquals(mockPage.getContent().size(), result.getContent().size(),
@@ -91,76 +131,76 @@ class DocumentServiceTest {
     @Test
     @DisplayName("Should return empty page when no document exist")
     public void shouldThrowExceptionWhenNoDocumentExist() {
-        // Arrange
+
         Page<Document> emptyPage = new PageImpl<>(Collections.emptyList());
 
-        // Act
+
         when(documentRepository.findAll(any(Pageable.class))).thenReturn(emptyPage);
         Throwable exception = Assertions.assertThrows(DocumentNotFoundException.class, () -> {
             documentService.getAllDocuments(1, 5, "asc", "id");
         });
 
-        // Assert
+
         Assertions.assertEquals("no document found.", exception.getMessage(), "Exception message should match");
     }
 
     @Test
     @DisplayName("Should return specific page")
     public void shouldReturnSpecificPage() {
-        // Arrange
+
         Pageable pageable = PageRequest.of(0, 2, Sort.Direction.ASC, "id");
 
         List<Document> mockDocumentsForPage = mockDocuments.subList(0, 2);
 
         Page<Document> page = new PageImpl<>(mockDocumentsForPage, pageable, mockDocuments.size());
 
-        // Act
+
         when(documentRepository.findAll(pageable)).thenReturn(page);
         Page<Document> result = documentService.getAllDocuments(1, 2, "asc", "id");
 
-        // Assert
+
         Assertions.assertEquals(page, result, "Returned page should match expected page");
     }
 
     @Test
     @DisplayName("Should return documents sorted by name ascending")
     public void shouldReturnDocumentsSortedByTitleAscending() {
-        // Arrange
+
         Pageable pageable = PageRequest.of(0, 5, Sort.Direction.ASC, "name");
 
-        // Sort mockDocuments by id in ascending order
+
         List<Document> sortedDocuments = mockDocuments.stream()
                 .sorted(Comparator.comparing(Document::getName))
                 .collect(Collectors.toList());
 
         Page<Document> sortedPage = new PageImpl<>(sortedDocuments, pageable, mockDocuments.size());
 
-        // Act
+
         when(documentRepository.findAll(pageable)).thenReturn(sortedPage);
         Page<Document> result = documentService.getAllDocuments(1, 5, "asc", "name");
 
-        // Assert
+
         Assertions.assertEquals(sortedPage, result, "Returned page should be sorted by name in ascending order");
     }
 
     @Test
     @DisplayName("Should return documents sorted by id descending")
     public void shouldReturnDocumentsSortedByIdDescending() {
-        // Arrange
+
         Pageable pageable = PageRequest.of(0, 5, Sort.Direction.DESC, "id");
 
-        // Sort mockExams by id in descending order
+
         List<Document> sortedDocuments = mockDocuments.stream()
                 .sorted(Comparator.comparing(Document::getId).reversed())
                 .collect(Collectors.toList());
 
         Page<Document> sortedPage = new PageImpl<>(sortedDocuments, pageable, mockDocuments.size());
 
-        // Act
+
         when(documentRepository.findAll(pageable)).thenReturn(sortedPage);
         Page<Document> result = documentService.getAllDocuments(1, 5, "desc", "id");
 
-        // Assert
+
         Assertions.assertEquals(sortedPage, result, "Returned page should be sorted by id in descending order");
 
     }
@@ -168,7 +208,7 @@ class DocumentServiceTest {
     @Test
     @DisplayName("Should return document by id")
     void should_return_document_by_id() {
-        // Arrange
+
         UUID id = UUID.randomUUID();
         Document mockDocument = DocumentHelperTest.createMockDocument();
         mockDocument.setId(id);
@@ -199,7 +239,7 @@ class DocumentServiceTest {
     @Test
     @DisplayName("Should search documents by keyword and date")
     void should_search_documents_by_keyword_and_date() {
-        // Given
+
         String keyword = "test";
         String date = "2024-04-16";
         Page<Document> expectedPage = new PageImpl<>(Collections.singletonList(DocumentHelperTest.createMockDocument()));
@@ -207,10 +247,10 @@ class DocumentServiceTest {
 
         when(documentRepository.searchByKeyword(keyword.toLowerCase(), date, pageable)).thenReturn(expectedPage);
 
-        // When
+
         Page<Document> resultPage = documentService.searchByKeyword(keyword, date, DEFAULT_PAGE, DEFAULT_PAGE_SIZE);
 
-        // Then
+
         assertEquals(expectedPage.getTotalElements(), resultPage.getTotalElements(), "Total number of documents should match");
         assertEquals(expectedPage.getContent(), resultPage.getContent(), "Returned documents should match expected documents");
     }
@@ -218,7 +258,7 @@ class DocumentServiceTest {
     @Test
     @DisplayName("Should search documents by keyword only")
     void should_search_documents_by_keyword_only() {
-        // Given
+
         String keyword = "test";
         String date = null;
         Page<Document> expectedPage = new PageImpl<>(Collections.singletonList(DocumentHelperTest.createMockDocument()));
@@ -226,10 +266,10 @@ class DocumentServiceTest {
 
         when(documentRepository.searchByKeyword(keyword.toLowerCase(), date, pageable)).thenReturn(expectedPage);
 
-        // When
+
         Page<Document> resultPage = documentService.searchByKeyword(keyword, date, DEFAULT_PAGE, DEFAULT_PAGE_SIZE);
 
-        // Then
+
         assertEquals(expectedPage.getTotalElements(), resultPage.getTotalElements(), "Total number of documents should match");
         assertEquals(expectedPage.getContent(), resultPage.getContent(), "Returned documents should match expected documents");
     }
@@ -237,20 +277,20 @@ class DocumentServiceTest {
     @Test
     @DisplayName("Should throw DocumentNotFoundException when no documents are found")
     void shouldThrowDocumentNotFoundExceptionWhenNoDocumentsFound() {
-        // Given
+
         String keyword = "test";
         String date = "2024-04-16";
         Pageable pageable = PageRequest.of(DEFAULT_PAGE - 1, DEFAULT_PAGE_SIZE, Sort.Direction.ASC, DEFAULT_DOCUMENT_SORT_BY);
 
-        // Stub the repository method call
+
         when(documentRepository.searchByKeyword(keyword.toLowerCase(), date, pageable))
                 .thenReturn(new PageImpl<>(Collections.emptyList()));
 
-        // When/Then
+
         assertThrows(DocumentNotFoundException.class, () ->
                 documentService.searchByKeyword(keyword, date, DEFAULT_PAGE, DEFAULT_PAGE_SIZE));
 
-        // Optionally, verify that the repository method was called
+
         verify(documentRepository).searchByKeyword(keyword.toLowerCase(), date, pageable);
     }
 

@@ -1,6 +1,7 @@
 package africa.norsys.doc.controller;
 
 import africa.norsys.doc.entity.Document;
+import africa.norsys.doc.exception.DocumentNotAddedException;
 import africa.norsys.doc.exception.DocumentNotFoundException;
 import africa.norsys.doc.service.DocumentService;
 import jakarta.validation.constraints.Min;
@@ -28,10 +29,10 @@ public class DocumentController {
 
 
     @PostMapping
-    public ResponseEntity<?> addDocument(@RequestParam("file") MultipartFile file) throws IOException {
+    public ResponseEntity<?> addDocument(@ModelAttribute Document document, @RequestParam("file") MultipartFile file) throws DocumentNotAddedException, IOException {
         String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().toUriString();
 
-        Document savedDocument = documentService.addDocument(file, baseUrl);
+        Document savedDocument = documentService.addDocument(document, file, baseUrl);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedDocument);
     }
 

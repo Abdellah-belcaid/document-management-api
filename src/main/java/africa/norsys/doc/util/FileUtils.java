@@ -4,10 +4,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -22,6 +26,7 @@ public class FileUtils {
         Map<String, String> metadataMap = new HashMap<>();
         metadataMap.put("size", String.valueOf(file.getSize()));
         metadataMap.put("extension", (extractFileExtension(file.getOriginalFilename())));
+
         return metadataMap;
     }
 
@@ -55,5 +60,31 @@ public class FileUtils {
                 .orElse("");
     }
 
+    public static String generateFileHash(InputStream inputStream) throws IOException {
+        try {
+            // Create MessageDigest instance for MD5
+            MessageDigest md = MessageDigest.getInstance("MD5");
+
+            // Create DigestInputStream to read the file and update the MessageDigest
+            try (DigestInputStream dis = new DigestInputStream(inputStream, md)) {
+                // Read the file content (and update the MessageDigest)
+                while (dis.read() != -1) ;
+            }
+
+            // Get the hash bytes
+            byte[] hashBytes = md.digest();
+
+            // Convert hash bytes to hexadecimal representation
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hashBytes) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            // Handle NoSuchAlgorithmException
+            e.printStackTrace();
+            return null;
+        }
+    }
 
 }
