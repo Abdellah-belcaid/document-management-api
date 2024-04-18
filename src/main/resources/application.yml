@@ -18,12 +18,10 @@ spring:
     properties:
       hibernate:
         show-sql: true
-    hibernate:
-      ddl-auto: create
 
 
   flyway:
-    baseline-on-migrate: false
+    baseline-on-migrate: true
     default-schema: public
     schemas: public
     baseline-version: 0
