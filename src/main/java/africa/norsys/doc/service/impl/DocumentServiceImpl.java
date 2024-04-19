@@ -47,28 +47,28 @@ public class DocumentServiceImpl implements DocumentService {
     @Override
     public Document addDocument(Document document, MultipartFile file, String baseUrl, UUID userId) throws DocumentNotAddedException, IOException {
 
-        // Generate hash for the file content
+
         String fileHash = generateFileHash(file.getInputStream());
 
-        // Check if a document with the same hash exists
+
         if (documentRepository.existsByDocumentHash_HashValue(fileHash)) {
             throw new FileAlreadyExistException("A document with the same content already exists.");
         }
 
-        // If document name is not provided, use the original file name
+
         if (document.getName() == null || document.getName().isEmpty())
             document.setName(file.getOriginalFilename());
 
         document.setType(file.getContentType());
 
-        // Extract metadata with the user ID
+
         Map<String, String> metadata = FileUtils.extractMetadata(file, userId);
         document.setMetadata(metadata);
 
-        // Save the document to the database
+
         document = documentRepository.save(document);
 
-        // Save the hash to the database
+
         DocumentHash documentHash = DocumentHash.builder()
                 .id(UUID.randomUUID())
                 .document(document)
@@ -77,17 +77,17 @@ public class DocumentServiceImpl implements DocumentService {
         documentHashRepository.save(documentHash);
 
         try {
-            // Generate and set the storage location URL
+
             String fileUrl = saveFileAndGenerateUrl(document.getId().toString(), file, baseUrl);
             document.setStorageLocation(fileUrl);
         } catch (IOException e) {
-            // Rollback the saved document and hash
+
             documentRepository.delete(document);
             documentHashRepository.delete(documentHash);
             throw new DocumentNotAddedException("Failed to add document: " + e.getMessage());
         }
 
-        // Update the document in the database with the storage location URL
+
         return documentRepository.save(document);
     }
 
@@ -161,28 +161,28 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     public boolean checkUserAccess(UUID documentId, UUID userId, Permission permission) {
-        // Retrieve the document by its ID
+
         Optional<Document> optionalDocument = documentRepository.findById(documentId);
 
         if (optionalDocument.isPresent()) {
             Document document = optionalDocument.get();
 
-            // Log the document owner and user ID for debugging
+
             log.debug("Document owner: {}", document.getMetadata().get("owner"));
             log.debug("User ID: {}", userId);
 
-            // Check if the document owner matches the user ID or if there's a sharing entry for the document and user with READ permission
+
             boolean isOwner = document.getMetadata().get("owner").equals(userId.toString());
             boolean hasReadPermission = documentShareRepository.existsByDocumentIdAndUserIdAndPermission(documentId, userId, permission);
 
-            // Log the access check results
+
             log.debug("Is owner: {}", isOwner);
             log.debug("Has read permission: {}", hasReadPermission);
 
-            return isOwner || hasReadPermission; // User has access
+            return isOwner || hasReadPermission;
         }
 
-        // If the document doesn't exist or the user doesn't have access, return false
+
         return false;
     }
 

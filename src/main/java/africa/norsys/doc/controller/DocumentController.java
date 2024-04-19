@@ -45,11 +45,11 @@ public class DocumentController {
     public ResponseEntity<byte[]> getFile(@PathVariable String filename,
                                           @RequestParam UUID documentId,
                                           @RequestParam("userId") UUID userId) throws IOException {
-        // Check if the user has access to the document
+
         boolean hasAccess = documentService.checkUserAccess(documentId, userId, Permission.READ);
 
         if (!hasAccess) {
-            // If the user does not have access, return a forbidden status code
+
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         byte[] fileBytes = documentService.getFileBytes(filename);
@@ -72,11 +72,11 @@ public class DocumentController {
     public ResponseEntity<Void> deleteDocument(@PathVariable UUID documentId, @RequestParam("userId") UUID userId) {
         try {
 
-            // Check if the user has access to the document
+
             boolean hasAccess = documentService.checkUserAccess(documentId, userId, Permission.WRITE);
 
             if (!hasAccess) {
-                // If the user does not have access, return a forbidden status code
+
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
 
@@ -94,15 +94,16 @@ public class DocumentController {
     public ResponseEntity<Document> getDocumentById(
             @PathVariable UUID documentId,
             @RequestParam("userId") UUID userId) {
-        // Check if the user has access to the document
-        boolean hasAccess = documentService.checkUserAccess(documentId, userId, Permission.READ);
+
+        boolean hasAccess = documentService.checkUserAccess(documentId, userId, Permission.READ) || documentService.checkUserAccess(documentId, userId, Permission.WRITE);
+
 
         if (!hasAccess) {
-            // If the user does not have access, return a forbidden status code
+
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        // If the user has access, retrieve and return the document details
+
         Optional<Document> optionalDocument = documentService.getDocumentById(documentId);
         return optionalDocument.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
