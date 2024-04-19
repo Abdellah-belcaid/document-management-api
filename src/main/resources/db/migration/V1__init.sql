@@ -28,15 +28,13 @@ CREATE TABLE users
     role        VARCHAR(255)        NOT NULL CHECK (role IN ('ADMIN', 'MODERATOR', 'USER'))
 );
 
-CREATE TABLE document_share
-(
-    id          UUID PRIMARY KEY,
-    document_id UUID REFERENCES documents,
-    user_id     UUID REFERENCES users,
-    permission  VARCHAR(255) CHECK (permission IN ('READ', 'READ_WRITE'))
+
+
+CREATE TABLE document_share (
+                               id UUID PRIMARY KEY,
+                               document_id UUID REFERENCES documents,
+                               user_id UUID REFERENCES users,
+                               permission VARCHAR(255) CHECK (permission IN ('READ', 'WRITE'))
 );
-
-
-
 
 
