@@ -2,12 +2,14 @@ package africa.norsys.doc.service.impl;
 
 import africa.norsys.doc.entity.Document;
 import africa.norsys.doc.entity.DocumentHash;
+import africa.norsys.doc.enumerator.Permission;
 import africa.norsys.doc.exception.DocumentNotAddedException;
 import africa.norsys.doc.exception.DocumentNotFoundException;
 import africa.norsys.doc.exception.FileAlreadyExistException;
 import africa.norsys.doc.exception.FileNotFoundException;
 import africa.norsys.doc.repository.DocumentHashRepository;
 import africa.norsys.doc.repository.DocumentRepository;
+import africa.norsys.doc.repository.DocumentShareRepository;
 import africa.norsys.doc.service.DocumentService;
 import africa.norsys.doc.util.FileUtils;
 import lombok.RequiredArgsConstructor;
@@ -39,33 +41,34 @@ public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentRepository documentRepository;
     private final DocumentHashRepository documentHashRepository;
+    private final DocumentShareRepository documentShareRepository;
 
 
     @Override
     public Document addDocument(Document document, MultipartFile file, String baseUrl, UUID userId) throws DocumentNotAddedException, IOException {
 
-        // Generate hash for the file content
+
         String fileHash = generateFileHash(file.getInputStream());
 
-        // Check if a document with the same hash exists
+
         if (documentRepository.existsByDocumentHash_HashValue(fileHash)) {
             throw new FileAlreadyExistException("A document with the same content already exists.");
         }
 
-        // If document name is not provided, use the original file name
+
         if (document.getName() == null || document.getName().isEmpty())
             document.setName(file.getOriginalFilename());
 
         document.setType(file.getContentType());
 
-        // Extract metadata with the user ID
+
         Map<String, String> metadata = FileUtils.extractMetadata(file, userId);
         document.setMetadata(metadata);
 
-        // Save the document to the database
+
         document = documentRepository.save(document);
 
-        // Save the hash to the database
+
         DocumentHash documentHash = DocumentHash.builder()
                 .id(UUID.randomUUID())
                 .document(document)
@@ -74,17 +77,17 @@ public class DocumentServiceImpl implements DocumentService {
         documentHashRepository.save(documentHash);
 
         try {
-            // Generate and set the storage location URL
+
             String fileUrl = saveFileAndGenerateUrl(document.getId().toString(), file, baseUrl);
             document.setStorageLocation(fileUrl);
         } catch (IOException e) {
-            // Rollback the saved document and hash
+
             documentRepository.delete(document);
             documentHashRepository.delete(documentHash);
             throw new DocumentNotAddedException("Failed to add document: " + e.getMessage());
         }
 
-        // Update the document in the database with the storage location URL
+
         return documentRepository.save(document);
     }
 
@@ -155,5 +158,33 @@ public class DocumentServiceImpl implements DocumentService {
         log.info("Retrieved {} documents for user with ID {}", userDocuments.getTotalElements(), userId);
         return userDocuments;
     }
+
+    @Override
+    public boolean checkUserAccess(UUID documentId, UUID userId, Permission permission) {
+
+        Optional<Document> optionalDocument = documentRepository.findById(documentId);
+
+        if (optionalDocument.isPresent()) {
+            Document document = optionalDocument.get();
+
+
+            log.debug("Document owner: {}", document.getMetadata().get("owner"));
+            log.debug("User ID: {}", userId);
+
+
+            boolean isOwner = document.getMetadata().get("owner").equals(userId.toString());
+            boolean hasReadPermission = documentShareRepository.existsByDocumentIdAndUserIdAndPermission(documentId, userId, permission);
+
+
+            log.debug("Is owner: {}", isOwner);
+            log.debug("Has read permission: {}", hasReadPermission);
+
+            return isOwner || hasReadPermission;
+        }
+
+
+        return false;
+    }
+
 
 }

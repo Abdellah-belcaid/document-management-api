@@ -14,14 +14,14 @@ import java.util.UUID;
 public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
 
-/*    @Query("SELECT d FROM Document d " +
-            "WHERE LOWER(d.name) LIKE %:keyword% " +
-            "OR LOWER(d.type) LIKE %:keyword% " +
-            "AND (:date IS NULL OR DATE(d.creationDate) = DATE(:date)) " +
-            "OR EXISTS (SELECT 1 FROM d.metadata m WHERE LOWER(m.key) LIKE %:keyword% AND LOWER(m.value) LIKE %:keyword%)")
-    List<Document> searchByKeyword(String keyword, @Param("date") String date);
+        /*    @Query("SELECT d FROM Document d " +
+                    "WHERE LOWER(d.name) LIKE %:keyword% " +
+                    "OR LOWER(d.type) LIKE %:keyword% " +
+                    "AND (:date IS NULL OR DATE(d.creationDate) = DATE(:date)) " +
+                    "OR EXISTS (SELECT 1 FROM d.metadata m WHERE LOWER(m.key) LIKE %:keyword% AND LOWER(m.value) LIKE %:keyword%)")
+            List<Document> searchByKeyword(String keyword, @Param("date") String date);
 
- */
+         */
 
     @Query(value = "SELECT DISTINCT d.* FROM documents d " +
             "LEFT JOIN document_metadata m ON d.id = m.document_id " +

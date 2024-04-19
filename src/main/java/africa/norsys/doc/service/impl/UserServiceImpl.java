@@ -14,6 +14,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -47,10 +49,21 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Email already exist ");
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        //user.setEnabled(false); this is for when adding email verification
+
         var savedUser = userRepository.save(user);
 
         return modelMapper.map(savedUser, UserDTO.class);
+    }
+
+    @Override
+    public UserDTO getUserById(UUID userId) {
+        Optional<User> optionalUser = userRepository.findById(userId);
+        if (optionalUser.isPresent()) {
+            User user = optionalUser.get();
+            return modelMapper.map(user, UserDTO.class);
+        } else {
+            return null;
+        }
     }
 
     @Override

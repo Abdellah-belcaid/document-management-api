@@ -10,6 +10,7 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -39,11 +40,11 @@ public class UserController {
             UserDTO user = userService.login(userLoginDTO);
             return ResponseEntity.ok(user);
         } catch (DisabledException e) {
-            // Customize the response for disabled accounts
+
             String errorMessage = "Account is disabled. Please contact support for assistance.";
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorMessage);
         } catch (Exception e) {
-            // Return INTERNAL SERVER ERROR (500) with a generic error message
+
             String errorMessage = "An error occurred during login ";
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorMessage + " : " + e.getMessage());
 
@@ -53,10 +54,28 @@ public class UserController {
     @PostMapping("/sign-up")
     public ResponseEntity<?> register(@RequestBody User user) {
         try {
-            return ResponseEntity.ok(userService.register(user)); // Return OK (200) with the registered user object
+            return ResponseEntity.ok(userService.register(user));
         } catch (Exception e) {
             String errorMessage = "An error occurred while registering.";
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorMessage + " : " + e.getMessage());
+        }
+    }
+
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<UserDTO> getUserById(@PathVariable UUID userId) {
+        try {
+            UserDTO userDTO = userService.getUserById(userId);
+            if (userDTO != null) {
+                return ResponseEntity.ok(userDTO);
+            } else {
+
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+
+            String errorMessage = "An error occurred while retrieving the user.";
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 }

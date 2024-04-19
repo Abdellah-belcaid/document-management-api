@@ -1,6 +1,7 @@
 package africa.norsys.doc.controller;
 
 import africa.norsys.doc.entity.Document;
+import africa.norsys.doc.enumerator.Permission;
 import africa.norsys.doc.exception.DocumentNotAddedException;
 import africa.norsys.doc.exception.DocumentNotFoundException;
 import africa.norsys.doc.service.DocumentService;
@@ -41,7 +42,16 @@ public class DocumentController {
 
 
     @GetMapping("/file/{filename:.+}")
-    public ResponseEntity<byte[]> getFile(@PathVariable String filename) throws IOException {
+    public ResponseEntity<byte[]> getFile(@PathVariable String filename,
+                                          @RequestParam UUID documentId,
+                                          @RequestParam("userId") UUID userId) throws IOException {
+
+        boolean hasAccess = documentService.checkUserAccess(documentId, userId, Permission.READ);
+
+        if (!hasAccess) {
+
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         byte[] fileBytes = documentService.getFileBytes(filename);
         return ResponseEntity.ok().body(fileBytes);
     }
@@ -59,8 +69,18 @@ public class DocumentController {
     }
 
     @DeleteMapping("/{documentId}")
-    public ResponseEntity<Void> deleteDocument(@PathVariable UUID documentId) {
+    public ResponseEntity<Void> deleteDocument(@PathVariable UUID documentId, @RequestParam("userId") UUID userId) {
         try {
+
+
+            boolean hasAccess = documentService.checkUserAccess(documentId, userId, Permission.WRITE);
+
+            if (!hasAccess) {
+
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+
+
             documentService.deleteDocumentById(documentId);
             return ResponseEntity.ok().build();
         } catch (DocumentNotFoundException e) {
@@ -70,12 +90,25 @@ public class DocumentController {
         }
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Document> getDocumentById(@PathVariable UUID id) {
-        Optional<Document> optionalDocument = documentService.getDocumentById(id);
+    @GetMapping("/{documentId}")
+    public ResponseEntity<Document> getDocumentById(
+            @PathVariable UUID documentId,
+            @RequestParam("userId") UUID userId) {
+
+        boolean hasAccess = documentService.checkUserAccess(documentId, userId, Permission.READ) || documentService.checkUserAccess(documentId, userId, Permission.WRITE);
+
+
+        if (!hasAccess) {
+
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+
+        Optional<Document> optionalDocument = documentService.getDocumentById(documentId);
         return optionalDocument.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
 
     @GetMapping("/search")
     public ResponseEntity<Page<Document>> searchDocuments(
