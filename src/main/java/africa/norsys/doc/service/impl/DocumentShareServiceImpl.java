@@ -1,5 +1,6 @@
 package africa.norsys.doc.service.impl;
 
+import africa.norsys.doc.dto.UserPermissionDto;
 import africa.norsys.doc.entity.Document;
 import africa.norsys.doc.entity.DocumentShare;
 import africa.norsys.doc.entity.User;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -52,6 +54,8 @@ public class DocumentShareServiceImpl implements DocumentShareService {
         return documentShareRepository.save(newShare);
     }
 
-
+    public List<UserPermissionDto> getUsersAndPermissionsByDocumentId(UUID documentId) {
+        return documentShareRepository.findUsersAndPermissionsByDocumentId(documentId);
+    }
 
 }
