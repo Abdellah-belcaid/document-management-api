@@ -1,6 +1,7 @@
 package africa.norsys.doc.entity;
 
 import africa.norsys.doc.enumerator.Role;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -27,7 +28,6 @@ public class User implements UserDetails {
     @Column(name = "id")
     private UUID id;
 
-
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
@@ -47,11 +47,12 @@ public class User implements UserDetails {
     @Column(name = "role", nullable = false)
     private Role role;
 
+    @OneToMany(mappedBy = "user")
+    @JsonIgnore
+    private Set<DocumentShare> documentShares;
+
     @Transient
     private String Token;
-
-    @OneToMany(mappedBy = "user")
-    private Set<DocumentShare> documentShares;
 
     private boolean Enabled = true;
 

@@ -2,14 +2,12 @@ package africa.norsys.doc.service.impl;
 
 import africa.norsys.doc.entity.Document;
 import africa.norsys.doc.entity.DocumentHash;
-import africa.norsys.doc.entity.DocumentShare;
-import africa.norsys.doc.entity.User;
-import africa.norsys.doc.enumerator.Permission;
-import africa.norsys.doc.exception.*;
+import africa.norsys.doc.exception.DocumentNotAddedException;
+import africa.norsys.doc.exception.DocumentNotFoundException;
+import africa.norsys.doc.exception.FileAlreadyExistException;
+import africa.norsys.doc.exception.FileNotFoundException;
 import africa.norsys.doc.repository.DocumentHashRepository;
 import africa.norsys.doc.repository.DocumentRepository;
-import africa.norsys.doc.repository.DocumentShareRepository;
-import africa.norsys.doc.repository.UserRepository;
 import africa.norsys.doc.service.DocumentService;
 import africa.norsys.doc.util.FileUtils;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import static africa.norsys.doc.constant.Constant.FILE_STORAGE_LOCATION;
@@ -41,8 +38,8 @@ public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentRepository documentRepository;
     private final DocumentHashRepository documentHashRepository;
-    private final UserRepository userRepository;
-    private final DocumentShareRepository documentShareRepository;
+
+
     @Override
     public Document addDocument(Document document, MultipartFile file, String baseUrl) throws DocumentNotAddedException, IOException {
 
@@ -55,7 +52,7 @@ public class DocumentServiceImpl implements DocumentService {
         }
 
         // If document name is not provided, use the original file name
-        if (document.getName() == null || document.getName().isEmpty() )
+        if (document.getName() == null || document.getName().isEmpty())
             document.setName(file.getOriginalFilename());
 
         document.setType(file.getContentType());
@@ -144,24 +141,5 @@ public class DocumentServiceImpl implements DocumentService {
         Files.deleteIfExists(filePath);
         documentRepository.delete(document);
     }
-    @Override
-    public void shareDocumentWithUsers(UUID documentId, Set<UUID> userIds, Permission permission) {
-        Document document = documentRepository.findById(documentId)
-                .orElseThrow(() -> new DocumentNotFoundException("Document not found with id: " + documentId));
-        Permission actualPermission = (permission == Permission.READ_WRITE) ? Permission.READ : permission;
 
-        for (UUID userId : userIds) {
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
-
-            DocumentShare existingShare = documentShareRepository.findByDocumentAndUser(document, user)
-                    .orElse(DocumentShare.builder()
-                            .document(document)
-                            .user(user)
-                            .build());
-
-            existingShare.setPermission(actualPermission);
-            documentShareRepository.save(existingShare);
-        }
-    }
 }

@@ -25,5 +25,5 @@ public interface DocumentService {
 
     Optional<Document> getDocumentById(UUID id);
 
-   void shareDocumentWithUsers(UUID documentId, Set<UUID> userIds, Permission permission);
+
 }

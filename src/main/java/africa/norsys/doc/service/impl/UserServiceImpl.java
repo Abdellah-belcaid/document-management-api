@@ -13,6 +13,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -27,7 +29,6 @@ public class UserServiceImpl implements UserService {
     public User addUser(User user) {
         return userRepository.save(user);
     }
-
 
     @Override
     public UserDTO login(User userLogin) {
@@ -51,4 +52,10 @@ public class UserServiceImpl implements UserService {
 
         return modelMapper.map(savedUser, UserDTO.class);
     }
+
+    @Override
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
 }
