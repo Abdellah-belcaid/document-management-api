@@ -51,6 +51,7 @@ class DocumentServiceTest {
     @Test
     @DisplayName("should add document Successfully")
     void should_add_document_Successfully() throws IOException {
+        UUID userId = UUID.randomUUID();
 
         MockMultipartFile file = DocumentHelperTest.createMockMultipartFile();
         Document savedDocument = DocumentHelperTest.createMockDocument();
@@ -61,7 +62,7 @@ class DocumentServiceTest {
 
         Document document = Document.builder().name(file.getOriginalFilename()).build();
 
-        Document result = documentService.addDocument(document, file, BASE_URL);
+        Document result = documentService.addDocument(document, file, BASE_URL, userId); // Pass the userId
 
         verify(documentRepository, times(2)).save(any(Document.class));
         verify(documentHashRepository, times(1)).save(any(DocumentHash.class));
@@ -74,6 +75,7 @@ class DocumentServiceTest {
         assertEquals(savedDocument.getMetadata(), result.getMetadata());
         assertEquals(BASE_URL + "/api/documents/file/" + savedDocument.getId() + ".txt", result.getStorageLocation());
     }
+
 
     @Test
     @DisplayName("should throw FileAlreadyExistException when adding document with existing hash")
@@ -88,9 +90,12 @@ class DocumentServiceTest {
         // Attempt to add a document
         Document document = Document.builder().name(file.getOriginalFilename()).build();
 
+        // Generate a random userId
+        UUID userId = UUID.randomUUID();
+
         // Verify that FileAlreadyExistException is thrown
         FileAlreadyExistException exception = assertThrows(FileAlreadyExistException.class, () -> {
-            documentService.addDocument(document, file, BASE_URL);
+            documentService.addDocument(document, file, BASE_URL, userId);
         });
 
         // Verify the exception message

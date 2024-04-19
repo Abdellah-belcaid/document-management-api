@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -41,7 +42,7 @@ public class DocumentServiceImpl implements DocumentService {
 
 
     @Override
-    public Document addDocument(Document document, MultipartFile file, String baseUrl) throws DocumentNotAddedException, IOException {
+    public Document addDocument(Document document, MultipartFile file, String baseUrl, UUID userId) throws DocumentNotAddedException, IOException {
 
         // Generate hash for the file content
         String fileHash = generateFileHash(file.getInputStream());
@@ -56,7 +57,10 @@ public class DocumentServiceImpl implements DocumentService {
             document.setName(file.getOriginalFilename());
 
         document.setType(file.getContentType());
-        document.setMetadata(FileUtils.extractMetadata(file));
+
+        // Extract metadata with the user ID
+        Map<String, String> metadata = FileUtils.extractMetadata(file, userId);
+        document.setMetadata(metadata);
 
         // Save the document to the database
         document = documentRepository.save(document);
@@ -83,6 +87,7 @@ public class DocumentServiceImpl implements DocumentService {
         // Update the document in the database with the storage location URL
         return documentRepository.save(document);
     }
+
 
     @Override
     public byte[] getFileBytes(String filename) throws IOException {
@@ -140,6 +145,15 @@ public class DocumentServiceImpl implements DocumentService {
         Path filePath = Paths.get(FILE_STORAGE_LOCATION).resolve(filename).normalize();
         Files.deleteIfExists(filePath);
         documentRepository.delete(document);
+    }
+
+    @Override
+    public Page<Document> getUserDocuments(UUID userId, int page, int size) {
+        log.info("Fetching documents for user with ID {}", userId);
+        Pageable pageable = PageRequest.of(page - 1, size);
+        Page<Document> userDocuments = documentRepository.findByUserId(userId, pageable);
+        log.info("Retrieved {} documents for user with ID {}", userDocuments.getTotalElements(), userId);
+        return userDocuments;
     }
 
 }

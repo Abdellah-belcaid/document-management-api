@@ -29,10 +29,13 @@ public class DocumentController {
 
 
     @PostMapping
-    public ResponseEntity<?> addDocument(@ModelAttribute Document document, @RequestParam("file") MultipartFile file) throws DocumentNotAddedException, IOException {
+    public ResponseEntity<?> addDocument(@ModelAttribute Document document,
+                                         @RequestParam("file") MultipartFile file,
+                                         @RequestParam("userId") UUID userId)
+            throws DocumentNotAddedException, IOException {
         String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().toUriString();
 
-        Document savedDocument = documentService.addDocument(document, file, baseUrl);
+        Document savedDocument = documentService.addDocument(document, file, baseUrl, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedDocument);
     }
 
@@ -89,4 +92,18 @@ public class DocumentController {
     }
 
 
+    @GetMapping("/user")
+    public ResponseEntity<Page<Document>> getUserDocuments(
+            @RequestParam(defaultValue = DEFAULT_PAGE + "") @Min(0) int page,
+            @RequestParam(defaultValue = DEFAULT_PAGE_SIZE + "") @Min(1) int size,
+            @RequestParam UUID userId
+    ) {
+        Page<Document> userDocuments = documentService.getUserDocuments(userId, page, size);
+        return userDocuments.isEmpty() ?
+                ResponseEntity.noContent().build() :
+                ResponseEntity.ok(userDocuments);
+    }
 }
+
+
+
