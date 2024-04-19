@@ -3,6 +3,7 @@ package africa.norsys.doc.entity;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -21,6 +22,7 @@ public class User {
     private UUID id;
 
     @OneToMany(mappedBy = "user")
+    @JsonIgnore
     private Set<DocumentShare> documentShares;
 
     @Column(name = "name", nullable = false, length = 100)

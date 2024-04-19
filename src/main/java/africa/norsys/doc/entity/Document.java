@@ -4,9 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-
 import java.time.LocalDate;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -27,6 +25,7 @@ public class Document {
     private UUID id;
 
     @OneToMany(mappedBy = "document")
+    @JsonIgnore
     private Set<DocumentShare> documentShares;
 
     @Column(name = "name")

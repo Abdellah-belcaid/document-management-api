@@ -31,6 +31,6 @@ CREATE TABLE documentshare (
                                id UUID PRIMARY KEY,
                                document_id UUID REFERENCES documents,
                                user_id UUID REFERENCES users,
-                               permission VARCHAR(255) CHECK (permission IN ('READ', 'READ_WRITE'))
+                               permission VARCHAR(255) CHECK (permission IN ('READ', 'WRITE'))
 );
 
