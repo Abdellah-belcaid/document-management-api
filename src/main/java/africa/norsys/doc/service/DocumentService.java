@@ -1,6 +1,7 @@
 package africa.norsys.doc.service;
 
 import africa.norsys.doc.entity.Document;
+import africa.norsys.doc.enumerator.Permission;
 import africa.norsys.doc.exception.DocumentNotAddedException;
 import africa.norsys.doc.exception.DocumentNotFoundException;
 import org.springframework.data.domain.Page;
@@ -25,4 +26,6 @@ public interface DocumentService {
 
 
     Page<Document> getUserDocuments(UUID userId, int page, int size);
+
+    boolean checkUserAccess(UUID documentId, UUID userId, Permission permission);
 }

@@ -2,12 +2,14 @@ package africa.norsys.doc.service.impl;
 
 import africa.norsys.doc.entity.Document;
 import africa.norsys.doc.entity.DocumentHash;
+import africa.norsys.doc.enumerator.Permission;
 import africa.norsys.doc.exception.DocumentNotAddedException;
 import africa.norsys.doc.exception.DocumentNotFoundException;
 import africa.norsys.doc.exception.FileAlreadyExistException;
 import africa.norsys.doc.exception.FileNotFoundException;
 import africa.norsys.doc.repository.DocumentHashRepository;
 import africa.norsys.doc.repository.DocumentRepository;
+import africa.norsys.doc.repository.DocumentShareRepository;
 import africa.norsys.doc.service.DocumentService;
 import africa.norsys.doc.util.FileUtils;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,7 @@ public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentRepository documentRepository;
     private final DocumentHashRepository documentHashRepository;
+    private final DocumentShareRepository documentShareRepository;
 
 
     @Override
@@ -155,5 +158,33 @@ public class DocumentServiceImpl implements DocumentService {
         log.info("Retrieved {} documents for user with ID {}", userDocuments.getTotalElements(), userId);
         return userDocuments;
     }
+
+    @Override
+    public boolean checkUserAccess(UUID documentId, UUID userId, Permission permission) {
+        // Retrieve the document by its ID
+        Optional<Document> optionalDocument = documentRepository.findById(documentId);
+
+        if (optionalDocument.isPresent()) {
+            Document document = optionalDocument.get();
+
+            // Log the document owner and user ID for debugging
+            log.debug("Document owner: {}", document.getMetadata().get("owner"));
+            log.debug("User ID: {}", userId);
+
+            // Check if the document owner matches the user ID or if there's a sharing entry for the document and user with READ permission
+            boolean isOwner = document.getMetadata().get("owner").equals(userId.toString());
+            boolean hasReadPermission = documentShareRepository.existsByDocumentIdAndUserIdAndPermission(documentId, userId, permission);
+
+            // Log the access check results
+            log.debug("Is owner: {}", isOwner);
+            log.debug("Has read permission: {}", hasReadPermission);
+
+            return isOwner || hasReadPermission; // User has access
+        }
+
+        // If the document doesn't exist or the user doesn't have access, return false
+        return false;
+    }
+
 
 }
