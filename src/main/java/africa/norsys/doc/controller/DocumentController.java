@@ -7,9 +7,10 @@ import africa.norsys.doc.exception.DocumentNotFoundException;
 import africa.norsys.doc.service.DocumentService;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -41,19 +42,28 @@ public class DocumentController {
     }
 
 
-    @GetMapping("/file/{filename:.+}")
-    public ResponseEntity<byte[]> getFile(@PathVariable String filename,
-                                          @RequestParam UUID documentId,
-                                          @RequestParam("userId") UUID userId) throws IOException {
+    @GetMapping(path = "/file/{filename:.+}", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    public ResponseEntity<Resource> getFile(@PathVariable String filename,
+                                            @RequestParam UUID documentId,
+                                            @RequestParam("userId") UUID userId) throws IOException {
 
         boolean hasAccess = documentService.checkUserAccess(documentId, userId, Permission.READ);
-
         if (!hasAccess) {
-
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
+
         byte[] fileBytes = documentService.getFileBytes(filename);
-        return ResponseEntity.ok().body(fileBytes);
+        ByteArrayResource resource = new ByteArrayResource(fileBytes);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(resource.contentLength())
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(filename)
+                                .build()
+                                .toString())
+                .body(resource);
     }
 
 
@@ -71,16 +81,11 @@ public class DocumentController {
     @DeleteMapping("/{documentId}")
     public ResponseEntity<Void> deleteDocument(@PathVariable UUID documentId, @RequestParam("userId") UUID userId) {
         try {
-
-
             boolean hasAccess = documentService.checkUserAccess(documentId, userId, Permission.WRITE);
 
             if (!hasAccess) {
-
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
-
-
             documentService.deleteDocumentById(documentId);
             return ResponseEntity.ok().build();
         } catch (DocumentNotFoundException e) {
@@ -96,14 +101,9 @@ public class DocumentController {
             @RequestParam("userId") UUID userId) {
 
         boolean hasAccess = documentService.checkUserAccess(documentId, userId, Permission.READ) || documentService.checkUserAccess(documentId, userId, Permission.WRITE);
-
-
         if (!hasAccess) {
-
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-
-
         Optional<Document> optionalDocument = documentService.getDocumentById(documentId);
         return optionalDocument.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
