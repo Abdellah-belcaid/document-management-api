@@ -29,9 +29,7 @@ public class DocumentShareController {
         try {
             DocumentShare documentShare = documentShareService.addDocumentShare(documentId, userId, permission);
             return ResponseEntity.ok().body(documentShare);
-        } catch (DocumentNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        } catch (UserNotFoundException e) {
+        } catch (DocumentNotFoundException | UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         } catch (DocumentShareAlreadyExistsException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(null);
