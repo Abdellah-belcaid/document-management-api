@@ -1,6 +1,7 @@
 package africa.norsys.doc.entity;
 
 import africa.norsys.doc.enumerator.Permission;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -21,9 +22,11 @@ public class DocumentShare {
     @Column(name = "id")
     private UUID id;
     @ManyToOne
+    @JsonIgnore
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     private User user;
     @ManyToOne
+    @JsonIgnore
     @JoinColumn(name = "document_id", referencedColumnName = "id")
     private Document document;
     @Enumerated(EnumType.STRING)

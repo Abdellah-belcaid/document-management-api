@@ -26,7 +26,7 @@ public class Document {
     private UUID id;
 
     @OneToMany(mappedBy = "document")
-    @JsonIgnore
+
     private Set<DocumentShare> documentShares;
 
     @Column(name = "name")

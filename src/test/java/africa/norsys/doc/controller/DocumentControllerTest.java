@@ -67,13 +67,15 @@ class DocumentControllerTest {
     void should_upload_document_successfully() throws Exception {
         Document mockDocument = DocumentHelperTest.createMockDocument();
         MockMultipartFile file = DocumentHelperTest.createMockMultipartFile();
+        UUID userId = UUID.randomUUID(); // Add a random userId
 
-        when(documentService.addDocument(any(Document.class), any(MultipartFile.class), any(String.class)))
+        when(documentService.addDocument(any(Document.class), any(MultipartFile.class), any(String.class), any(UUID.class)))
                 .thenReturn(mockDocument);
 
         mockMvc.perform(multipart(DOCUMENT_API_ENDPOINT)
                         .file(file)
                         .param("document", objectMapper.writeValueAsString(mockDocument))
+                        .param("userId", userId.toString()) // Pass the userId as a parameter
                         .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().isCreated())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(mockDocument.getId().toString()))
@@ -88,13 +90,15 @@ class DocumentControllerTest {
     void should_handle_exception_when_adding_document() throws Exception {
         MockMultipartFile file = DocumentHelperTest.createMockMultipartFile();
         Document mockDocument = DocumentHelperTest.createMockDocument();
+        UUID userId = UUID.randomUUID(); // Add a random userId
 
-        when(documentService.addDocument(any(Document.class), any(MultipartFile.class), any(String.class)))
+        when(documentService.addDocument(any(Document.class), any(MultipartFile.class), any(String.class), any(UUID.class)))
                 .thenThrow(new DocumentNotAddedException("Document could not be added"));
 
         mockMvc.perform(multipart(DOCUMENT_API_ENDPOINT)
                         .file(file)
                         .param("document", objectMapper.writeValueAsString(mockDocument))
+                        .param("userId", userId.toString()) // Pass the userId as a parameter
                         .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError())
                 .andExpect(MockMvcResultMatchers.content().string("Document could not be added"));

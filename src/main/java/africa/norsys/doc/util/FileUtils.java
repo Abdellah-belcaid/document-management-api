@@ -15,18 +15,19 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import static africa.norsys.doc.constant.Constant.FILE_STORAGE_LOCATION;
 
 @Slf4j
 public class FileUtils {
 
-    public static Map<String, String> extractMetadata(MultipartFile file) {
+    public static Map<String, String> extractMetadata(MultipartFile file, UUID userId) {
         if (file == null) return new HashMap<>();
         Map<String, String> metadataMap = new HashMap<>();
         metadataMap.put("size", String.valueOf(file.getSize()));
         metadataMap.put("extension", (extractFileExtension(file.getOriginalFilename())));
-
+        metadataMap.put("owner", String.valueOf(userId));
         return metadataMap;
     }
 
